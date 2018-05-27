@@ -1,78 +1,100 @@
-local CustomRangeRadius = {}
-CustomRangeRadius.Menu = {}
-CustomRangeRadius.User = {}
-CustomRangeRadius.Particles = {}
+local CustomRangeRadius = {};
+CustomRangeRadius.Menu = {};
+CustomRangeRadius.User = {};
+CustomRangeRadius.Particles = {};
 
-CustomRangeRadius.Menu.Path = {"Utility", "Custom Range Radius"}
-CustomRangeRadius.Menu.Enabled = Menu.AddOptionBool(CustomRangeRadius.Menu.Path, "Enabled", false)
-CustomRangeRadius.Menu.Radius = Menu.AddOptionSlider(CustomRangeRadius.Menu.Path, "Radius", 150, 2500, 1300)
+CustomRangeRadius.Menu.Path = {"Utility", "Custom Range Radius"};
+CustomRangeRadius.Menu.Enabled = Menu.AddOptionBool(CustomRangeRadius.Menu.Path, "Enabled", false);
+CustomRangeRadius.Menu.Radius = Menu.AddOptionSlider(CustomRangeRadius.Menu.Path, "Radius", 150, 2500, 1300);
 
-CustomRangeRadius.User.Hero = nil
-CustomRangeRadius.Particles.Radius = {}
+CustomRangeRadius.User.Hero = nil;
+CustomRangeRadius.Particles.Radius = {};
 
 function CustomRangeRadius.isEnabled()
-	return Menu.IsEnabled(CustomRangeRadius.Menu.Enabled)
-end
+	return Menu.IsEnabled(CustomRangeRadius.Menu.Enabled);
+end;
 
 function CustomRangeRadius.getRadius()
-	return Menu.GetValue(CustomRangeRadius.Menu.Radius)
-end
+	return Menu.GetValue(CustomRangeRadius.Menu.Radius);
+end;
 
 function CustomRangeRadius.Initialization()
-	CustomRangeRadius.User.Hero = nil
+	CustomRangeRadius.User.Hero = nil;
 	for k in pairs(CustomRangeRadius.Particles.Radius) do
-		CustomRangeRadius.Particles.Radius[k] = nil
-	end
-end
+		CustomRangeRadius.Particles.Radius[k] = nil;
+	end;
+end;
 
 function CustomRangeRadius.Finalization()
-	CustomRangeRadius.User.Hero = nil
+	CustomRangeRadius.User.Hero = nil;
 	for k in pairs(CustomRangeRadius.Particles.Radius) do
-		CustomRangeRadius.Particles.Radius[k] = nil
-	end
-end
+		CustomRangeRadius.Particles.Radius[k] = nil;
+	end;
+end;
+
+function CustomRangeRadius.CreateRangeParticle(index)
+	if (CustomRangeRadius.User.Hero == nil) then
+		return false;
+	end;
+	if (CustomRangeRadius.Particles.Radius[tonumber(index)] == nil) then
+		CustomRangeRadius.Particles.Radius[tonumber(index)] = {};
+		CustomRangeRadius.Particles.Radius[tonumber(index)].ID = Particle.Create("particles/ui_mouseactions/range_display.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero);
+		CustomRangeRadius.Particles.Radius[tonumber(index)].Value = 0;
+		return true;
+	end;
+	return false;
+end;
+
+function CustomRangeRadius.ClearRangeParticle(index)
+	if (CustomRangeRadius.Particles.Radius[tonumber(index)] ~= nil) then
+		Particle.Destroy(CustomRangeRadius.Particles.Radius[tonumber(index)].ID);
+		CustomRangeRadius.Particles.Radius[tonumber(index)] = nil;
+	end;
+end;
 
 function CustomRangeRadius.SetRange(index,range)
-	if CustomRangeRadius.User.Hero == nil then
-		return false
-	elseif ((CustomRangeRadius.Particles.Radius[index] == nil) or (CustomRangeRadius.Particles.Radius[index].ID == 0)) then
-		CustomRangeRadius.Particles.Radius[index] = {}
-		CustomRangeRadius.Particles.Radius[index].ID = Particle.Create("particles/range_display_blue.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero)
-		CustomRangeRadius.Particles.Radius[index].Value = range
-		Particles.SetControlPoint(CustomRangeRadius.Particles.Radius[index].ID, 1, Vector(range,0,0))
-		return true
-	elseif CustomRangeRadius.Particles.Radius[index].Value ~= range then
-		Particles.SetControlPoint(CustomRangeRadius.Particles.Radius[index].ID, 1, Vector(range,0,0))
-		return true
+	if (CustomRangeRadius.User.Hero == nil) then
+		return false;
 	end
-	return false
+	CustomRangeRadius.CreateRangeParticle(index);
+	if (CustomRangeRadius.Particles.Radius[tonumber(index)].ID ~= 0) and (CustomRangeRadius.Particles.Radius[tonumber(index)].Value ~= range) then
+		if (CustomRangeRadius.Particles.Radius[tonumber(index)].Value ~= 0) then
+			CustomRangeRadius.ClearRangeParticle(index);
+			CustomRangeRadius.CreateRangeParticle(index);
+		end;
+		CustomRangeRadius.Particles.Radius[tonumber(index)].Value = range;
+		Particle.SetControlPoint(CustomRangeRadius.Particles.Radius[tonumber(index)].ID, 1, Vector(tonumber(range),0,0));
+		Particle.SetControlPoint(CustomRangeRadius.Particles.Radius[tonumber(index)].ID, 6, Vector(1, 0, 0));
+		return true;
+	end
+	return false;
 end
 
 function CustomRangeRadius.OnUpdate(p1)
-	CustomRangeRadius.User.Hero = Heroes.GetLocal()
+	CustomRangeRadius.User.Hero = Heroes.GetLocal();
 	if CustomRangeRadius.User.Hero == nil then 
-		return 
+		return;
 	else
 		if CustomRangeRadius.isEnabled() then
 			-- main radius will be replaced with for loop
-			CustomRangeRadius.SetRange(0,CustomRangeRadius.getRadius())
+			CustomRangeRadius.SetRange(1,CustomRangeRadius.getRadius());
 		else
 			for i in pairs(CustomRangeRadius.Particles.Radius) do
 				if	(CustomRangeRadius.Particles.Radius[i].ID == 0) then
-					Particle.Destroy(CustomRangeRadius.Particles.Radius[i].ID)
-					CustomRangeRadius.Particles.Radius[i].ID = 0
-				end
-			end
-		end
-	end
-end
+					Particle.Destroy(CustomRangeRadius.Particles.Radius[i].ID);
+					CustomRangeRadius.Particles.Radius[i].ID = 0;
+				end;
+			end;
+		end;
+	end;
+end;
 
 function CustomRangeRadius.OnGameStart()
-	CustomRangeRadius.Initialization()
+	CustomRangeRadius.Initialization();
 end
 
 function CustomRangeRadius.OnGameEnd()
-	CustomRangeRadius.Finalization()
+	CustomRangeRadius.Finalization();
 end
 
 return CustomRangeRadius
