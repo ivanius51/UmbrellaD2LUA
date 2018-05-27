@@ -80,10 +80,7 @@ function CustomRangeRadius.OnUpdate(p1)
 			CustomRangeRadius.SetRange(1,CustomRangeRadius.getRadius());
 		else
 			for i in pairs(CustomRangeRadius.Particles.Radius) do
-				if	(CustomRangeRadius.Particles.Radius[i].ID == 0) then
-					Particle.Destroy(CustomRangeRadius.Particles.Radius[i].ID);
-					CustomRangeRadius.Particles.Radius[i].ID = 0;
-				end;
+				CustomRangeRadius.ClearRangeParticle(i);
 			end;
 		end;
 	end;
