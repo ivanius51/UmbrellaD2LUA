@@ -1,76 +1,195 @@
-local AbilityProtector = {};
-AbilityProtector.Menu = {};
-AbilityProtector.User = {};
-AbilityProtector.Particles = {};
+--[[
+TODO:
+	Gyrocopter
+	Apparition
+	Willow
 
-AbilityProtector.Menu.Path = {"Utility", "Ability Protector"};
-AbilityProtector.Menu.Enabled = Menu.AddOptionBool(AbilityProtector.Menu.Path, "Enabled", false);
+--]]
 
-AbilityProtector.User.Hero = nil;
-AbilityProtector.Particles = {};
+local SkillAlert = {};
+SkillAlert.Menu = {};
+SkillAlert.User = {};
+SkillAlert.Particles = {};
+SkillAlert.SkillModifiers = {
+	["modifier_invoker_sun_strike"] = {"particles/units/heroes/hero_invoker/invoker_sun_strike.vpcf", "position", 175},
+	["modifier_kunkka_torrent_thinker"] = {"particles/units/heroes/hero_kunkka/kunkka_spell_torrent_splash.vpcf", "position", 325},
+	["modifier_lina_light_strike_array"] = {"particles/units/heroes/hero_lina/lina_spell_light_strike_array.vpcf", "position", 225},
+	["modifier_leshrac_split_earth_thinker"] = {"particles/units/heroes/hero_leshrac/leshrac_split_earth.vpcf", "position", 225},
+	["modifier_truesight"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 150},
+	["modifier_invisible"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 150},
+	["modifier_projectile_vision_on_minimap"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 150},
+	["modifier_spirit_breaker_charge_of_darkness_vision"] = {"particles/units/heroes/hero_spirit_breaker/spirit_breaker_charge_target_mark.vpcf", "overhead"},
+	["modifier_tusk_snowball_target"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"},
+	["modifier_tusk_snowball_visible"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"}
+}
 
-function AbilityProtector.isEnabled()
-	return Menu.IsEnabled(AbilityProtector.Menu.Enabled);
+SkillAlert.Menu.Path = {"Utility", "Skill Alert"};
+SkillAlert.Menu.Enabled = Menu.AddOptionBool(SkillAlert.Menu.Path, "Enabled", false);
+
+SkillAlert.User.Hero = nil;
+SkillAlert.Particles = {};
+
+function SkillAlert.isEnabled()
+	return Menu.IsEnabled(SkillAlert.Menu.Enabled);
 end;
 
-function AbilityProtector.Initialization()
-	AbilityProtector.User.Hero = nil;
-	for k in pairs(AbilityProtector.Particles) do
-		AbilityProtector.Particles[k] = nil;
+function SkillAlert.Initialization()
+	SkillAlert.User.Hero = nil;
+	for k in pairs(SkillAlert.Particles) do
+		SkillAlert.Particles[k] = nil;
 	end;
 end;
 
-function AbilityProtector.Finalization()
-	AbilityProtector.User.Hero = nil;
-	for k in pairs(AbilityProtector.Particles) do
-		AbilityProtector.Particles[k] = nil;
+function SkillAlert.Finalization()
+	SkillAlert.User.Hero = nil;
+	for k in pairs(SkillAlert.Particles) do
+		SkillAlert.ClearParticle(k);
 	end;
 end;
 
-function AbilityProtector.CreateRangeParticle(index)
-	if (AbilityProtector.User.Hero == nil) then
+function SkillAlert.CreateRangeParticle(index, ent, name)
+	if (ent == nil) then
 		return false;
 	end;
-	if (AbilityProtector.Particles[tonumber(index)] == nil) then
-		AbilityProtector.Particles[tonumber(index)] = {};
-		AbilityProtector.Particles[tonumber(index)].ID = Particle.Create("particles/ui_mouseactions/range_display.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, AbilityProtector.User.Hero);
-		AbilityProtector.Particles[tonumber(index)].Value = 0;
+	if (SkillAlert.Particles[tonumber(index)] == nil) then
+		SkillAlert.Particles[tonumber(index)] = {};
+		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, ent);
 		return true;
 	end;
 	return false;
 end;
 
-function AbilityProtector.ClearParticle(index)
-	if (AbilityProtector.Particles[tonumber(index)] ~= nil) then
-		Particle.Destroy(AbilityProtector.Particles[tonumber(index)].ID);
-		AbilityProtector.Particles[tonumber(index)] = nil;
+function SkillAlert.CreateOverheadParticle(index, ent, name)
+	if (ent == nil) then
+		return false;
+	end;
+	if (SkillAlert.Particles[tonumber(index)] == nil) then
+		SkillAlert.Particles[tonumber(index)] = {};
+		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_OVERHEAD_FOLLOW, ent);
+		return true;
+	end;
+	return false;
+end;
+
+function SkillAlert.CreatePositionParticle(index, position, name)
+	if (ent == nil) then
+		return false;
+	end;
+	if (SkillAlert.Particles[tonumber(index)] == nil) then
+		SkillAlert.Particles[tonumber(index)] = {};
+		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN, 0);
+		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 0, position);
+		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 1, Vector(300, 100, 100));
+		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 6, Vector(100, 0, 0));
+		return true;
+	end;
+	return false;
+end;
+
+function SkillAlert.ClearParticle(index)
+	if (SkillAlert.Particles[tonumber(index)] ~= nil) then
+		Particle.Destroy(SkillAlert.Particles[tonumber(index)].ID);
+		SkillAlert.Particles[tonumber(index)] = nil;
 	end;
 end;
 
-function AbilityProtector.OnUpdate()
-	AbilityProtector.User.Hero = Heroes.GetLocal();
-	if AbilityProtector.User.Hero == nil then 
+function SkillAlert.OnUpdate()
+	SkillAlert.User.Hero = Heroes.GetLocal();
+	if SkillAlert.User.Hero == nil then 
 		return;
 	else
-		if not AbilityProtector.isEnabled() then
-			for i in pairs(AbilityProtector.Particles) do
+		if not SkillAlert.isEnabled() then
+			for i in pairs(SkillAlert.Particles) do
 				ClearParticle(i);
 			end;
 		end;
 	end;
 end;
 
-function AbilityProtector.OnModifierCreate(ent, mod)
+function SkillAlert.OnParticleCreate( particle )
+	if not SkillAlert.isEnabled() then
+		return;
+	end;
+	--[[
+	Log.Write("particleCr = " .. particle.name);
+	Log.Write("particleCr = " .. tostring(particle.entityForModifiers));
+	if particle.entityForModifiers ~= 0 then
+		SkillAlert.CreateRangeParticle(particle.entityForModifiers, particle.entityForModifiers, "particles/ui_mouseactions/range_display.vpcf")
+		if (SkillAlert.Particles[particle.entityForModifiers] ~= nil) then
+			Particle.SetControlPoint(SkillAlert.Particles[particle.entityForModifiers].ID, 1, Vector(120, 0, 0));
+			Particle.SetControlPoint(SkillAlert.Particles[particle.entityForModifiers].ID, 6, Vector(1, 0, 0));
+		end;
+	end;
+	--]]
+end;
 
+function SkillAlert.OnParticleDestroy( particle )
+	if not SkillAlert.isEnabled() then
+		return;
+	end;
+	--[[
+	Log.Write("particleDe = " .. particle.name);
+	Log.Write("particleDe = " .. tostring(particle.entityForModifiers));
+	if particle.entityForModifiers ~= 0 then
+		if (SkillAlert.Particles[particle.entityForModifiers] ~= nil) then
+			SkillAlert.ClearParticle(particle.entityForModifiers);
+		end;
+	end;
+	--]]
 end;
 
 
-function AbilityProtector.OnGameStart()
-	AbilityProtector.Initialization();
+function SkillAlert.OnModifierCreate(ent, mod)
+	if SkillAlert.isEnabled() then
+		if NPC.GetUnitName(ent) ~= nil then
+			Log.Write(NPC.GetUnitName(ent)); 
+		else
+			Log.Write(Entity.GetClassName(ent));
+		end;
+		Log.Write(Modifier.GetName(mod)); 
+		if SkillAlert.SkillModifiers[Modifier.GetName(mod)] ~= nil then
+			if SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "position" then
+				SkillAlert.CreateRangeParticle(ent,ent,SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
+				if (SkillAlert.Particles[ent] ~= nil) then
+					Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
+				end;
+			elseif SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "overhead" then
+				SkillAlert.CreateOverheadParticle(ent,ent,SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
+			elseif SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "range" then
+				SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1])
+				Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
+			end;
+
+			if (SkillAlert.Particles[ent] ~= nil) then
+				Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 6, Vector(1, 0, 0));
+			end;
+		else
+			-- not listed modifier
+		end;
+	end;
+end;
+
+function SkillAlert.OnModifierDestroy(ent, mod)
+	if SkillAlert.isEnabled() then
+		if SkillAlert.SkillModifiers[Modifier.GetName(mod)] ~= nil then
+			if (SkillAlert.Particles[ent] ~= nil) then
+				SkillAlert.ClearParticle(ent);
+			end;
+		else
+			-- not listed modifier
+			if (SkillAlert.Particles[ent] ~= nil) then
+				SkillAlert.ClearParticle(ent);
+			end;
+		end;
+	end;
+end;
+
+function SkillAlert.OnGameStart()
+	SkillAlert.Initialization();
 end
 
-function AbilityProtector.OnGameEnd()
-	AbilityProtector.Finalization();
+function SkillAlert.OnGameEnd()
+	SkillAlert.Finalization();
 end
 
-return AbilityProtector
+return SkillAlert
