@@ -1,6 +1,6 @@
 --[[
 TODO:
-	Gyrocopter
+	Gyrocopter - ult, rocket
 	Apparition
 	Willow
 	Sven - stun
