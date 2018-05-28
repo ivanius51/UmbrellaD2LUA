@@ -11,10 +11,11 @@ local SkillAlert = {};
 SkillAlert.Menu = {};
 SkillAlert.User = {};
 SkillAlert.Particles = {};
+SkillAlert.Menu.ParticleEffects = {"particles/neutral_fx/roshan_spawn.vpcf", "particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "particles/ui_mouseactions/range_display.vpcf"};
 SkillAlert.SkillModifiers = {
 	["default"] = {"particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "position", 175},
 	["modifier_invoker_sun_strike"] = {"particles/units/heroes/hero_invoker/invoker_sun_strike.vpcf", "position", 175},
-	["modifier_kunkka_torrent_thinker"] = {"particles/units/heroes/hero_kunkka/kunkka_spell_torrent_splash.vpcf", "position", 325},
+	["modifier_kunkka_torrent_thinker"] = {"particles/units/heroes/hero_kunkka/kunkka_spell_torrent_splash.vpcf", "position", 250},
 	["modifier_lina_light_strike_array"] = {"particles/units/heroes/hero_lina/lina_spell_light_strike_array.vpcf", "position", 225},
 	["modifier_leshrac_split_earth_thinker"] = {"particles/units/heroes/hero_leshrac/leshrac_split_earth.vpcf", "position", 225},
 	["modifier_truesight"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},
@@ -28,7 +29,7 @@ SkillAlert.SkillModifiers = {
 SkillAlert.Menu.Path = {"Utility", "Skill Alert"};
 SkillAlert.Menu.Enabled = Menu.AddOptionBool(SkillAlert.Menu.Path, "Enabled", false);
 SkillAlert.Menu.SkillEffects = Menu.AddOptionBool(SkillAlert.Menu.Path, "Default Skill Effects", false);
--- SkillAlert.Menu.SelectedEffect = Menu.AddOptionCombo(SkillAlert.Menu.Path, "Custom Effect", {"particles/neutral_fx/roshan_spawn.vpcf", "particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "particles/ui_mouseactions/range_display.vpcf"} ,0);
+SkillAlert.Menu.ParticleEffect = Menu.AddOptionCombo(SkillAlert.Menu.Path, "Custom Effect", SkillAlert.Menu.ParticleEffects ,0);
 
 SkillAlert.User.Hero = nil;
 SkillAlert.Particles = {};
@@ -39,6 +40,11 @@ end;
 
 function SkillAlert.isDefaultSkillEffects()
 	return Menu.IsEnabled(SkillAlert.Menu.SkillEffects);
+end;
+
+function SkillAlert.getSkillParticleEffect()
+	local result = tonumber(Menu.GetValue(SkillAlert.Menu.ParticleEffect))+1;
+	return SkillAlert.Menu.ParticleEffects[result];
 end;
 
 function SkillAlert.Initialization()
@@ -164,7 +170,7 @@ function SkillAlert.OnModifierCreate(ent, mod)
 				if SkillAlert.isDefaultSkillEffects() then
 					SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
 				else
-					SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.SkillModifiers["default"][1]);
+					SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.getSkillParticleEffect());
 				end;
 				if (SkillAlert.Particles[ent] ~= nil) then
 					Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
