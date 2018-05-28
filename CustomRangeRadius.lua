@@ -3,6 +3,12 @@ CustomRangeRadius.Menu = {};
 CustomRangeRadius.User = {};
 CustomRangeRadius.Particles = {};
 
+--[[
+TODO:
+	skill ranges 
+	more custom ranges
+--]]
+
 CustomRangeRadius.Menu.Path = {"Utility", "Custom Range Radius"};
 CustomRangeRadius.Menu.Enabled = Menu.AddOptionBool(CustomRangeRadius.Menu.Path, "Enabled", false);
 CustomRangeRadius.Menu.Radius = Menu.AddOptionSlider(CustomRangeRadius.Menu.Path, "Radius", 150, 2500, 1300);
