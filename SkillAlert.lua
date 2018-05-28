@@ -141,12 +141,14 @@ end;
 
 function SkillAlert.OnModifierCreate(ent, mod)
 	if SkillAlert.isEnabled() then
+		--[[
 		if NPC.GetUnitName(ent) ~= nil then
 			Log.Write(NPC.GetUnitName(ent)); 
 		else
 			Log.Write(Entity.GetClassName(ent));
 		end;
 		Log.Write(Modifier.GetName(mod)); 
+		--]]
 		if SkillAlert.SkillModifiers[Modifier.GetName(mod)] ~= nil then
 			if SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "position" then
 				SkillAlert.CreateRangeParticle(ent,ent,SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
