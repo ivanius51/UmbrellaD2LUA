@@ -1,5 +1,18 @@
 --[[
-TODO:
+-----------------------------------------------
+  ______     __   _____                _        _____ _____ __ 
+ |  _ \ \   / /  |_   _|              (_)      / ____| ____/_ |
+ | |_) \ \_/ /     | |_   ____ _ _ __  _ _   _| (___ | |__  | |
+ |  _ < \   /      | \ \ / / _` | '_ \| | | | |\___ \|___ \ | |
+ | |_) | | |      _| |\ V / (_| | | | | | |_| |____) |___) || |
+ |____/  |_|     |_____\_/ \__,_|_| |_|_|\__,_|_____/|____/ |_|
+                                                               
+http://GetScript.Net
+-----------------------End---------------------
+Is licensed under the
+GNU General Public License v3.0
+
+----------------------TODO---------------------
 	Gyrocopter - ult, rocket
 	Apparition
 	Willow
@@ -93,8 +106,8 @@ function SkillAlert.CreatePositionParticle(index, position, name)
 		SkillAlert.Particles[tonumber(index)] = {};
 		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN, 0);
 		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 0, position);
-		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 1, Vector(300, 100, 100));
-		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 6, Vector(100, 0, 0));
+		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 1, Vector(300, 1, 1));
+		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 6, Vector(1, 0, 0));
 		return true;
 	end;
 	return false;

@@ -1,13 +1,28 @@
+--[[
+-----------------------------------------------
+  ______     __   _____                _        _____ _____ __ 
+ |  _ \ \   / /  |_   _|              (_)      / ____| ____/_ |
+ | |_) \ \_/ /     | |_   ____ _ _ __  _ _   _| (___ | |__  | |
+ |  _ < \   /      | \ \ / / _` | '_ \| | | | |\___ \|___ \ | |
+ | |_) | | |      _| |\ V / (_| | | | | | |_| |____) |___) || |
+ |____/  |_|     |_____\_/ \__,_|_| |_|_|\__,_|_____/|____/ |_|
+                                                               
+http://GetScript.Net
+-----------------------End---------------------
+Is licensed under the
+GNU General Public License v3.0
+
+----------------------TODO---------------------
+	skill ranges 
+	more custom ranges
+--]]
+
 local CustomRangeRadius = {};
 CustomRangeRadius.Menu = {};
 CustomRangeRadius.User = {};
 CustomRangeRadius.Particles = {};
 
---[[
-TODO:
-	skill ranges 
-	more custom ranges
---]]
+
 
 CustomRangeRadius.Menu.Path = {"Utility", "Custom Range Radius"};
 CustomRangeRadius.Menu.Enabled = Menu.AddOptionBool(CustomRangeRadius.Menu.Path, "Enabled", false);
