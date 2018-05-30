@@ -328,7 +328,7 @@ function LastHitCreep.OnUpdate()
 		LastHitCreep.User.LastUpdateTime = os.clock();
 		LastHitCreep.Creeps = Entity.GetUnitsInRadius(LastHitCreep.User.Hero, LastHitCreep.User.Range + 350, Enum.TeamType.TEAM_BOTH);
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if Entity.IsAlive(npc) and  NPC.IsLaneCreep(npc) then
+			if Entity.IsAlive(npc) and NPC.IsLaneCreep(npc) then
 				--todo incapsulate it
 				if LastHitCreep.CreepsDPS[npc] == nil then
 					LastHitCreep.CreepsDPS[npc] = {};
@@ -416,10 +416,8 @@ function LastHitCreep.OnUpdate()
 					PossiblyMissedDPS = table.sum(LastHitCreep.CreepsDPS[npc].Damage,(RoundNumber(DMGTime,1) * LastHitCreep.DPSMult) );
 				end;
 				if ( (HP < (TrueDMG + PossiblyMissedDPS)) ) then
-					Log.Write("HP="..HP.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." DPS="..table.sum(LastHitCreep.CreepsDPS[npc].Damage).." "..table.tostring(LastHitCreep.CreepsDPS[npc].Damage));
+					--Log.Write("HP="..HP.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." DPS="..table.sum(LastHitCreep.CreepsDPS[npc].Damage).." "..table.tostring(LastHitCreep.CreepsDPS[npc].Damage));
 					--Log.Write("HP="..HP.." Dist="..dist.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." PrepareTime="..(os.clock()+DMGTime));
-					--Log.Write(NPC.GetTimeToFace(LastHitCreep.User.Hero, npc).." "..(DMGStartTime-NPC.GetTimeToFace(LastHitCreep.User.Hero, npc)));
-					--Log.Write("P_StartAttack="..(GameRules.GetGameTime()+DMGStartTime).." P_EndAttack="..(GameRules.GetGameTime()+DMGTime));
 					if (LastHitCreep.isEducation() and not LastHitCreep.isHitKeyDown()) then
 						--LastHitCreep.ClearParticle(npc);
 						LastHitCreep.CreateOverheadParticle(npc, npc, "particles/units/heroes/hero_sniper/sniper_crosshair.vpcf");
@@ -434,8 +432,6 @@ function LastHitCreep.OnUpdate()
 			end;
 		end;
 	end;
-
-	
 	
 	--must be sort and check list 
 	--1) if (HP <= TrueDMG)
@@ -447,7 +443,7 @@ function LastHitCreep.OnUpdate()
 			LastHitCreep.User.LastMoveTime = os.clock() + 2;
 		else
 			if ((os.clock() - LastHitCreep.User.LastAttackTime) > (LastHitCreep.User.AttackPoint + 0.05)) and ((os.clock() - LastHitCreep.User.LastMoveTime) > 0.45)  then
-				Log.Write("Attack Move");
+				--Log.Write("Attack Move");
 				local position = Entity.GetAbsOrigin(LastHitCreep.User.Hero);
 				movevec = position:__add(Vector(math.random(-70,70),math.random(-70,70),0));--magic number for range move
 				NPC.MoveTo(LastHitCreep.User.Hero, movevec, false);
@@ -467,13 +463,13 @@ function LastHitCreep.OnUnitDie(ent)
 end;
 
 function LastHitCreep.OnUnitAnimation(animation)
-	if not animation then 
+	if not animation or not LastHitCreep.isEnabled() then 
 		return;
 	end;
 	
 	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
-			Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+			--Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 		end;
 		--[[
 		local increasedAS = NPC.GetIncreasedAttackSpeed(animation.unit);
@@ -502,13 +498,13 @@ function LastHitCreep.OnUnitAnimation(animation)
 end;
 
 function LastHitCreep.OnUnitAnimationEnd(animation)
-	if not animation then 
+	if not animation or not LastHitCreep.isEnabled() then 
 		return;
 	end;
 
 	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
-			Log.Write("LT HP END="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+			--Log.Write("LT HP END="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 		end;
 		--Log.Write("R_EndAttack="..GameRules.GetGameTime());
 	end;
