@@ -113,12 +113,13 @@ LastHitCreep.Menu = {};
 LastHitCreep.User = {};
 LastHitCreep.Particles = {};
 LastHitCreep.SkillModifiers = {
-	["modifier_item_quelling_blade"]= {1.4},
-	["modifier_item_bfury"] = {1.6},
-	["modifier_item_iron_talon"] = {1.4},
-	["modifier_bloodseeker_bloodrage"] = {1.25,1.3,1.35,1.4}
+	["modifier_item_quelling_blade"]= {24,7},
+	["modifier_item_bfury"] = {0.5,0.25},
+	--["modifier_item_iron_talon"] = {1.4},
+	["modifier_bloodseeker_bloodrage"] = {0.25,0.3,0.35,0.4}
 }
 
+--options
 LastHitCreep.Menu.Path = {"Utility", "Last Hit Creep"};
 LastHitCreep.Menu.Path.CreepTypes = {"Utility", "Last Hit Creep", "Creep Types"};
 LastHitCreep.Menu.Enabled = Menu.AddOptionBool(LastHitCreep.Menu.Path, "Enabled", false);
@@ -164,6 +165,83 @@ function LastHitCreep.isKillNeutrals()
 end;
 --end menu options
 
+function LastHitCreep.CanCastSpells(caster, enemy)
+
+	if not caster then return false end;
+	if not Entity.IsAlive(caster) then return false end;
+
+	if NPC.IsSilenced(caster) then return false end;
+	if NPC.IsStunned(caster) then return false end;
+	if NPC.HasModifier(caster, "modifier_bashed") then return false end;
+	if NPC.HasState(caster, Enum.ModifierState.MODIFIER_STATE_INVULNERABLE) then return false end;
+	if NPC.HasModifier(caster, "modifier_eul_cyclone") then return false end;
+	if NPC.HasModifier(caster, "modifier_obsidian_destroyer_astral_imprisonment_prison") then return false end;
+	if NPC.HasModifier(caster, "modifier_shadow_demon_disruption") then return false end;
+	if NPC.HasModifier(caster, "modifier_invoker_tornado") then return false end;
+	if NPC.HasState(caster, Enum.ModifierState.MODIFIER_STATE_HEXED) then return false end;
+	if NPC.HasModifier(caster, "modifier_legion_commander_duel") then return false end;
+	if NPC.HasModifier(caster, "modifier_axe_berserkers_call") then return false end;
+	if NPC.HasModifier(caster, "modifier_winter_wyvern_winters_curse") then return false end;
+	if NPC.HasModifier(caster, "modifier_bane_fiends_grip") then return false end;
+	if NPC.HasModifier(caster, "modifier_bane_nightmare") then return false end;
+	if NPC.HasModifier(caster, "modifier_faceless_void_chronosphere_freeze") then return false end;
+	if NPC.HasModifier(caster, "modifier_enigma_black_hole_pull") then return false end;
+	if NPC.HasModifier(caster, "modifier_magnataur_reverse_polarity") then return false end;
+	if NPC.HasModifier(caster, "modifier_pudge_dismember") then return false end;
+	if NPC.HasModifier(caster, "modifier_shadow_shaman_shackles") then return false end;
+	if NPC.HasModifier(caster, "modifier_techies_stasis_trap_stunned") then return false end;
+	if NPC.HasModifier(caster, "modifier_storm_spirit_electric_vortex_pull") then return false end;
+	if NPC.HasModifier(caster, "modifier_tidehunter_ravage") then return false end;
+	if NPC.HasModifier(caster, "modifier_windrunner_shackle_shot") then return false end;
+	if NPC.HasModifier(caster, "modifier_item_nullifier_mute") then return false end;
+	if enemy then
+		if NPC.HasModifier(enemy, "modifier_item_aeon_disk_buff") then return false end;
+	end
+	return true;
+end;
+
+function LastHitCreep.RightNameFromModifier(mod)
+	return string.gsub(mod, "modifier_", "", 1);
+end;
+
+function DamageMulOrAdd (Damage, Bonus, mod)
+	if math.abs(mod)<2 then
+		return Bonus + (Damage + Bonus) * mod;
+	else
+		return Bonus + mod;
+	end;
+end;
+
+function LastHitCreep.DamageToCreep(ent)
+
+	if not ent then 
+		return 0;
+	end;
+
+	local Damage = NPC.GetTrueDamage(ent) + math.floor((NPC.GetTrueMaximumDamage(ent) - NPC.GetTrueDamage(ent)) / 3);
+	local BonusDamage = 0;
+
+	for mod, mul in pairs(LastHitCreep.SkillModifiers) do
+		local modifier = NPC.GetModifier(ent, mod);
+		if modifier then
+			if #mul == 2 then
+				local indexvalue = 1;
+				if NPC.IsRanged(ent) then
+					indexvalue = 2;
+				end;
+				BonusDamage = DamageMulOrAdd(Damage, BonusDamage, mul[indexvalue]);
+			else
+				local abil = NPC.GetAbility(ent, LastHitCreep.RightNameFromModifier(mod));
+				if abil then
+					BonusDamage = DamageMulOrAdd(Damage, BonusDamage, mul[Ability.GetLevel(abil)]);
+				end;
+			end;
+		end;
+	end;
+
+	return Damage + BonusDamage;
+end;
+
 function LastHitCreep.User.Read()
 	LastHitCreep.User.Hero = Heroes.GetLocal();
 	if not LastHitCreep.User.Hero then
@@ -189,6 +267,9 @@ function LastHitCreep.User.Read()
 	LastHitCreep.User.AttackRange = NPC.GetAttackRange(LastHitCreep.User.Hero);
 	LastHitCreep.User.HullRadius =  NPC.GetHullRadius(LastHitCreep.User.Hero);
 	LastHitCreep.User.MoveSpeed = NPC.GetMoveSpeed(LastHitCreep.User.Hero);
+
+	Log.Write(LastHitCreep.DamageToCreep(LastHitCreep.User.Hero));
+
 	return true;
 end;
 
@@ -330,7 +411,7 @@ function LastHitCreep.OnUpdate()
 		LastHitCreep.User.LastUpdateTime = os.clock();
 		LastHitCreep.Creeps = Entity.GetUnitsInRadius(LastHitCreep.User.Hero, LastHitCreep.User.AttackRange + 350, Enum.TeamType.TEAM_BOTH);
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if Entity.IsAlive(npc) and NPC.IsLaneCreep(npc) then
+			if Entity.IsAlive(npc) and Entity.IsEntity(target) and Entity.IsNPC(target) then-- NPC.IsLaneCreep(npc)
 				--todo incapsulate it
 				if LastHitCreep.CreepsDPS[npc] == nil then
 					LastHitCreep.CreepsDPS[npc] = {};
@@ -364,8 +445,8 @@ function LastHitCreep.OnUpdate()
 		end;
 		--find creep to kill
 	end;
-	
-	if ((os.clock() - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) then
+
+	if ((os.clock() - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) and LastHitCreep.CanCastSpells(LastHitCreep.User.Hero) then
 		if (LastHitCreep.isEducation()) then
 			LastHitCreep.User.AttackTime = 0.05;
 		else
@@ -379,10 +460,10 @@ function LastHitCreep.OnUpdate()
 		end;
 		--find "right" npc to kill
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if Entity.IsEntity(npc) and Entity.IsAlive(npc) and NPC.IsLaneCreep(npc) and
+			if Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(target) and  --NPC.IsLaneCreep(npc) and
 			( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) )
 			 then
-				local TrueDMG = math.floor(math.floor(NPC.GetDamageMultiplierVersus(LastHitCreep.User.Hero, npc) * ((LastHitCreep.User.Damage + NPC.GetBonusDamage(LastHitCreep.User.Hero)) * NPC.GetArmorDamageMultiplier(npc))) * 0.975);
+				local TrueDMG = math.floor(NPC.GetDamageMultiplierVersus(LastHitCreep.User.Hero, npc) * LastHitCreep.DamageToCreep(LastHitCreep.User.Hero) * NPC.GetArmorDamageMultiplier(npc) * 0.975);
 				--math.ceil(NPC.GetArmorDamageMultiplier(npc) * LastHitCreep.User.TrueDamage);--
 				--
 				if not Entity.IsSameTeam(npc, LastHitCreep.User.Hero) then
@@ -417,7 +498,7 @@ function LastHitCreep.OnUpdate()
 					if (LastHitCreep.isEducation() and not LastHitCreep.isHitKeyDown()) then
 						--LastHitCreep.ClearParticle(npc);
 						LastHitCreep.CreateOverheadParticle(npc, npc, "particles/units/heroes/hero_sniper/sniper_crosshair.vpcf");
-					else
+					else	
 						Player.AttackTarget(Players.GetLocal(), LastHitCreep.User.Hero, npc)
 					end;
 					LastHitCreep.User.LastAttackTime = os.clock() + 0.05;

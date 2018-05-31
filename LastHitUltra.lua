@@ -381,7 +381,7 @@ function LastHitUltra.lastHitterExecuteLastHit(myHero, attackPoint)
 		else
 			local target = lastHitTarget
 			local hitTime = LastHitUltra.utilityRoundNumber((lastHitTime - NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING)), 3)
-			if Entity.IsNPC(target) and Entity.IsAlive(target) and not NPC.HasState(target, Enum.ModifierState.MODIFIER_STATE_INVULNERABLE) then
+			if Entity.IsEntity(target) and Entity.IsNPC(target) and Entity.IsAlive(target) and not NPC.HasState(target, Enum.ModifierState.MODIFIER_STATE_INVULNERABLE) then
 				if curTime > hitTime - LastHitUltra.lastHitterTimingOffsetter(myHero, target) then
 					if not LastHitUltra.lastHitInAttackAnimation(myHero, attackPoint) then
 						if LastHitUltra.lastHitterOrbSkill ~= nil and not Entity.IsSameTeam(myHero, target) and not NPC.IsTower(target) then
