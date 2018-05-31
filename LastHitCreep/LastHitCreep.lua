@@ -268,7 +268,7 @@ function LastHitCreep.User.Read()
 	LastHitCreep.User.HullRadius =  NPC.GetHullRadius(LastHitCreep.User.Hero);
 	LastHitCreep.User.MoveSpeed = NPC.GetMoveSpeed(LastHitCreep.User.Hero);
 
-	Log.Write(LastHitCreep.DamageToCreep(LastHitCreep.User.Hero));
+	--Log.Write(LastHitCreep.DamageToCreep(LastHitCreep.User.Hero));
 
 	return true;
 end;
@@ -411,7 +411,7 @@ function LastHitCreep.OnUpdate()
 		LastHitCreep.User.LastUpdateTime = os.clock();
 		LastHitCreep.Creeps = Entity.GetUnitsInRadius(LastHitCreep.User.Hero, LastHitCreep.User.AttackRange + 350, Enum.TeamType.TEAM_BOTH);
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if npc and Entity.IsEntity(target) and Entity.IsAlive(npc) and Entity.IsNPC(target) then-- NPC.IsLaneCreep(npc)
+			if npc and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) then-- NPC.IsLaneCreep(npc)
 				--todo incapsulate it
 				if LastHitCreep.CreepsDPS[npc] == nil then
 					LastHitCreep.CreepsDPS[npc] = {};
@@ -456,11 +456,11 @@ function LastHitCreep.OnUpdate()
 		
 		--check last target
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) and Entity.IsAlive(LastHitCreep.User.LastTarget) then
-			Log.Write("LT HP Next="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+			--Log.Write("LT HP Next="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 		end;
 		--find "right" npc to kill
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if npc and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(target) and  --NPC.IsLaneCreep(npc) and
+			if npc and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) and  --NPC.IsLaneCreep(npc) and
 			( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) )
 			 then
 				local TrueDMG = math.floor(NPC.GetDamageMultiplierVersus(LastHitCreep.User.Hero, npc) * LastHitCreep.DamageToCreep(LastHitCreep.User.Hero) * NPC.GetArmorDamageMultiplier(npc) * 0.975);
@@ -494,7 +494,7 @@ function LastHitCreep.OnUpdate()
 				end;
 				if ( (HP < (TrueDMG + PossiblyMissedDPS)) ) then
 					--Log.Write("HP="..HP.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." DPS="..table.sum(LastHitCreep.CreepsDPS[npc].Damage).." "..table.tostring(LastHitCreep.CreepsDPS[npc].Damage));
-					Log.Write("HP="..HP.." Dist="..DistanceToTarget.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." PrepareTime="..DMGTime);
+					--Log.Write("HP="..HP.." Dist="..DistanceToTarget.." DMG="..TrueDMG.." PMD="..PossiblyMissedDPS.." PrepareTime="..DMGTime);
 					if (LastHitCreep.isEducation() and not LastHitCreep.isHitKeyDown()) then
 						--LastHitCreep.ClearParticle(npc);
 						LastHitCreep.CreateOverheadParticle(npc, npc, "particles/units/heroes/hero_sniper/sniper_crosshair.vpcf");
@@ -536,7 +536,7 @@ function LastHitCreep.OnUpdate()
 end;
 
 function LastHitCreep.OnUnitDie(ent)
-	Log.Write(NPC.GetUnitName(ent));
+	--Log.Write(NPC.GetUnitName(ent));
 end;
 
 function LastHitCreep.OnUnitAnimation(animation)
@@ -546,7 +546,7 @@ function LastHitCreep.OnUnitAnimation(animation)
 	
 	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
-			Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+			--Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 		end;
 		--[[
 		local increasedAS = NPC.GetIncreasedAttackSpeed(animation.unit);
