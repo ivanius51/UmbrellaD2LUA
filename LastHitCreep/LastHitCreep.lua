@@ -411,7 +411,7 @@ function LastHitCreep.OnUpdate()
 		LastHitCreep.User.LastUpdateTime = os.clock();
 		LastHitCreep.Creeps = Entity.GetUnitsInRadius(LastHitCreep.User.Hero, LastHitCreep.User.AttackRange + 350, Enum.TeamType.TEAM_BOTH);
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if Entity.IsAlive(npc) and Entity.IsEntity(target) and Entity.IsNPC(target) then-- NPC.IsLaneCreep(npc)
+			if npc and Entity.IsEntity(target) and Entity.IsAlive(npc) and Entity.IsNPC(target) then-- NPC.IsLaneCreep(npc)
 				--todo incapsulate it
 				if LastHitCreep.CreepsDPS[npc] == nil then
 					LastHitCreep.CreepsDPS[npc] = {};
@@ -460,7 +460,7 @@ function LastHitCreep.OnUpdate()
 		end;
 		--find "right" npc to kill
 		for k, npc in ipairs(LastHitCreep.Creeps) do
-			if Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(target) and  --NPC.IsLaneCreep(npc) and
+			if npc and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(target) and  --NPC.IsLaneCreep(npc) and
 			( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) )
 			 then
 				local TrueDMG = math.floor(NPC.GetDamageMultiplierVersus(LastHitCreep.User.Hero, npc) * LastHitCreep.DamageToCreep(LastHitCreep.User.Hero) * NPC.GetArmorDamageMultiplier(npc) * 0.975);
