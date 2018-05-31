@@ -257,11 +257,11 @@ function LastHitCreep.User.Read()
 	LastHitCreep.User.MaximumDamage = NPC.GetTrueMaximumDamage(LastHitCreep.User.Hero);
 
 	LastHitCreep.User.ProjectileSpeed = 0;
+	LastHitCreep.User.TrueDamage = LastHitCreep.User.Damage + math.ceil((LastHitCreep.User.MaximumDamage - LastHitCreep.User.Damage) / 2);
+
 	if NPC.IsRanged(LastHitCreep.User.Hero) then
-		LastHitCreep.User.TrueDamage = LastHitCreep.User.Damage + math.ceil((LastHitCreep.User.MaximumDamage - LastHitCreep.User.Damage) / 4);
 		LastHitCreep.User.ProjectileSpeed = HeroInfo[LastHitCreep.User.Name].ProjectileSpeed;
 	else
-		LastHitCreep.User.TrueDamage = LastHitCreep.User.Damage-1;
 		LastHitCreep.User.AttackPoint = LastHitCreep.User.AttackPoint;-- - LastHitCreep.User.AttackPoint / 2;
 	end;
 	LastHitCreep.User.AttackRange = NPC.GetAttackRange(LastHitCreep.User.Hero);
@@ -475,13 +475,11 @@ function LastHitCreep.OnUpdate()
 				local FaceTime = math.max(NPC.GetTimeToFace(LastHitCreep.User.Hero, npc) - ((0.033 * math.pi / NPC.GetTurnRate(LastHitCreep.User.Hero) / 180) * 11.5), 0);
 				local MoveTime = math.ceil(MoveDistance/LastHitCreep.User.MoveSpeed);
 				local ProjectileTime = 0;
-				local DPS =  1;
+				local DPS =  15;
 				if NPC.IsRanged(LastHitCreep.User.Hero) and (LastHitCreep.User.ProjectileSpeed > 0) then
 					ProjectileTime = ((ProjectileDistance - 24) / LastHitCreep.User.ProjectileSpeed);
-					local DPS =  35;
 				else
 					DMGEndTime = LastHitCreep.CalcAttackTime() + 0.1;
-					local DPS =  25;
 				end;
 				local DMGTime = RoundNumber(LastHitCreep.User.AttackPoint + ProjectileTime + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) + FaceTime + MoveTime, 3);
 
@@ -547,6 +545,9 @@ function LastHitCreep.OnUnitAnimation(animation)
 	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
 			--Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+		end;
+		if (not LastHitCreep.isEducation() or LastHitCreep.isHitKeyDown()) and (Entity.GetHealth(LastHitCreep.User.LastTarget)>(LastHitCreep.User.TrueDamage*2)) or not(LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget))  then 
+			Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
 		end;
 		--[[
 		local increasedAS = NPC.GetIncreasedAttackSpeed(animation.unit);
