@@ -94,7 +94,7 @@ function PudgeExtended.OnUpdate()
 
 	if Menu.IsKeyDown(PudgeExtended.Scary) and PudgeExtended.NextTime["scary"] == 0 then
 		Ability.CastPosition(Pudge.Hook, Input.GetWorldCursorPos())
-		PudgeExtended.NextTime["scary"] = PudgeExtended.CurrentTime + 0.3
+		PudgeExtended.NextTime["scary"] = PudgeExtended.CurrentTime + 0.25
 	end
 	
 	-- <======================================================> --

@@ -4,6 +4,7 @@ Ivanius51 13.07.2016 АвтоДенай крипов + подсвечивани�
 04.02.2017 Переработана формула расчтеа учитвая последние патчи
 25.05.2018 - 30.05.2018 Переведено на LUA, добавлено правильное предсказание, изменены настройки
 02.06 - calculation reworked, added prediction configs, add prediction helper.
+03.06 no Prevent Player.
 -----------------------------------------------
   ______     __   _____                _        _____ _____ __ 
  |  _ \ \   / /  |_   _|              (_)      / ____| ____/_ |
@@ -246,6 +247,35 @@ function LastHitCreep.ClearParticle(index)
 end;
 --end particles
 
+function LastHitCreep.IsInvisible(user)
+	if not user then return false end;
+	if NPC.HasState(user, Enum.ModifierState.MODIFIER_STATE_INVISIBLE) then return true end;
+	if NPC.HasModifier(user, "modifier_invisible") then return true end;
+	if NPC.HasModifier(user, "modifier_invoker_ghost_walk_self") then return true end;
+	if NPC.HasModifier(user, "modifier_item_invisibility_edge_windwalk") then return true end;
+	if NPC.HasModifier(user, "modifier_item_silver_edge_windwalk") then return true end;
+	if NPC.HasModifier(user, "modifier_item_glimmer_cape_fade") then return true end;
+end;
+
+function LastHitCreep.IsCastNow(user)
+	if not user then return false end;	
+	if NPC.IsChannellingAbility(user) then return true end;
+	if NPC.HasModifier(user, "modifier_teleporting") then return true end;
+	for i=0, 24 do	
+		local abil = NPC.GetAbilityByIndex(user, i);
+		if abil and Entity.IsEntity(abil) and (Ability.GetLevel(abil) >= 1) and not Ability.IsHidden(abil) and not Ability.IsPassive(abil) and Ability.IsInAbilityPhase(abil) then
+			Log.Write(Ability.GetName(abil));
+			return true;
+		end;
+	end;
+end;
+
+function LastHitCreep.PreventPlayer(user)
+	if not user then return false end;
+	if LastHitCreep.IsCastNow(user) then return true end;
+	if LastHitCreep.IsInvisible(user) then return true end;
+end;
+
 function LastHitCreep.CanCastSpells(caster, enemy)
 
 	if not caster then return false end;
@@ -312,7 +342,7 @@ function LastHitCreep.DamageToCreep(ent)
 				end;
 				BonusDamage = DamageMulOrAdd(Damage, BonusDamage, mul[indexvalue]);
 			else
-				local abil = NPC.GetAbility(ent, LastHitCreep.RightNameFromModifier(mod));
+				local abil = Modifier.GetAbility(modifier);--NPC.GetAbility(ent, LastHitCreep.RightNameFromModifier(mod));
 				if abil then
 					BonusDamage = DamageMulOrAdd(Damage, BonusDamage, mul[Ability.GetLevel(abil)]);
 				end;
@@ -596,7 +626,7 @@ function LastHitCreep.OnUpdate()
 		LastHitCreep.LastUpdateTime = os.clock();
 	end;
 
-	if ((os.clock() - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) and LastHitCreep.CanCastSpells(LastHitCreep.User.Hero) then
+	if ((os.clock() - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) and LastHitCreep.CanCastSpells(LastHitCreep.User.Hero) and not LastHitCreep.PreventPlayer(LastHitCreep.User.Hero) then
 		local BestTarget = LastHitCreep.FindBestTarget();
 		if BestTarget and BestTarget[1] and (not LastHitCreep.isEducation() or LastHitCreep.isHitKeyDown()) then
 			Player.AttackTarget(Players.GetLocal(), LastHitCreep.User.Hero, BestTarget[1]);
