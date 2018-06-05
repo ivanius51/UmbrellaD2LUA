@@ -15,8 +15,8 @@ Is licensed under the
 GNU General Public License v3.0
 ]]
 
-Blocker = {};
-Blocker.inited = false;
+CreepsBlocker = {};
+CreepsBlocker.inited = false;
 
 local creep_melee_collision_size = 16;
 local creep_ranged_collision_size =  8;
@@ -24,13 +24,14 @@ local creep_ranged_collision_size =  8;
 local hero_collision_size = 24;
 local SearchRadius = 500;
 
-Blocker.Menu = {};
-Blocker.Menu.Path = {"Utility", "Creep Block"};
-Blocker.Menu.Key = Menu.AddKeyOption(Blocker.Menu.Path, "Enable key", Enum.ButtonCode.KEY_SPACE);
+CreepsBlocker.Menu = {};
+CreepsBlocker.Menu.Path = {"Utility", "Creep Block"};
+CreepsBlocker.Menu.Key = Menu.AddKeyOption(CreepsBlocker.Menu.Path, "Enable key", Enum.ButtonCode.KEY_SPACE);
 
 -- enemyHeroBlock = Menu.AddOption({ "Utility", "[Bot] HeroBlock" }, "Enabled", "Block enemy hero with summoned units.")
-Blocker.Menu.SkipRangedCreep = Menu.AddOptionBool(Blocker.Menu.Path, "Skip ranged creep", false); --"Bot will try to skip ranged creep."
-Blocker.Menu.ShowDebugMove = Menu.AddOptionBool(Blocker.Menu.Path, "Show Debug Move", false);
+CreepsBlocker.Menu.SkipRangedCreep = Menu.AddOptionBool(CreepsBlocker.Menu.Path, "Skip ranged creep", false); --"Bot will try to skip ranged creep."
+CreepsBlocker.Menu.PredictTime = Menu.AddOptionSlider(CreepsBlocker.Menu.Path, "Predict Time (Latency)", 10, 250, 66);
+CreepsBlocker.Menu.ShowDebugMove = Menu.AddOptionBool(CreepsBlocker.Menu.Path, "Show Debug Move", false);
 
 local font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.EXTRABOLD);
 
@@ -42,69 +43,76 @@ local mid_towers = {};
 local bottom_towers = {};
 local my_team = nil;
 
-Blocker.LastStop = 0;
-Blocker.Sleep = 0;
-Blocker.LessStopping = false;
+CreepsBlocker.NextStop = 0;
+CreepsBlocker.Sleep = 0;
+CreepsBlocker.PredictTime = Menu.GetValue(CreepsBlocker.Menu.PredictTime) * 0.01;
+CreepsBlocker.LessStopping = false;
+CreepsBlocker.BestPosition = nil;
+CreepsBlocker.Fountain = nil;
 
-Blocker.Fountain = nil;
+CreepsBlocker.User = nil;
+CreepsBlocker.Creeps = nil;
 
-Blocker.User = nil;
-Blocker.Creeps = nil;
-
-Blocker.FountainOrigin = 0;
+CreepsBlocker.FountainOrigin = 0;
 local size_x, size_y = 0;
 
 
-function Blocker.Init()
-    Blocker.User = Heroes.GetLocal();
-    if Blocker.User == nil then return end;
-    if not Entity.IsAlive(Blocker.User) then return end;
-    Blocker.inited = true;
+function CreepsBlocker.Init()
+    CreepsBlocker.User = Heroes.GetLocal();
+    if CreepsBlocker.User == nil then return end;
+    if not Entity.IsAlive(CreepsBlocker.User) then return end;
+    CreepsBlocker.inited = true;
 end
 
-function Blocker.OnMenuOptionChange(option, oldValue, newValue)
-    if (option == Blocker.Menu.ShowDebugMove) and newValue then
+function CreepsBlocker.OnMenuOptionChange(option, oldValue, newValue)
+    if (option == CreepsBlocker.Menu.ShowDebugMove) and newValue then
         size_x, size_y = Renderer.GetScreenSize();
+    end;
+    if (option == CreepsBlocker.Menu.PredictTime) then
+        CreepsBlocker.PredictTime = newValue * 0.01;
     end;
 end;
 
-function Blocker.OnUpdate()
+function CreepsBlocker.OnUpdate()
 
-    if not Engine.IsInGame() then Blocker.Reset() end;
-    Blocker.Init();
-    if not Blocker.inited then return end;
+    if not Engine.IsInGame() then CreepsBlocker.Reset() end;
+    CreepsBlocker.Init();
+    if not CreepsBlocker.inited then return end;
 
-    if not Menu.IsKeyDown(Blocker.Menu.Key) then
+    if not Menu.IsKeyDown(CreepsBlocker.Menu.Key) then
         return false;
     end;
 
-    if not Blocker.User then return end;
-    if not Blocker.Fountain or Blocker.Fountain == nil then
-        Blocker.getFountain(Blocker.User);
-    end;
+    if not CreepsBlocker.User then return end;
+    --if not CreepsBlocker.Fountain or CreepsBlocker.Fountain == nil then
+    --    CreepsBlocker.getFountain(CreepsBlocker.User);
+    --end;
     
-    Blocker.Creeps = Entity.GetUnitsInRadius(Blocker.User, SearchRadius, Enum.TeamType.TEAM_FRIEND);
-    local origin = Entity.GetAbsOrigin(Blocker.User);
+    CreepsBlocker.Creeps = Entity.GetUnitsInRadius(CreepsBlocker.User, SearchRadius, Enum.TeamType.TEAM_FRIEND);
+    if not CreepsBlocker.Creeps or (#CreepsBlocker.Creeps < 2) then
+        return false;
+    end;
+    local origin = Entity.GetAbsOrigin(CreepsBlocker.User);
 
-    local best_npc = nil;
-    local best_position = nil;
+    --local best_npc = nil;
+    CreepsBlocker.BestPosition = nil;
     local best_distance = 99999;
-    local best_angle = 0.0;
+    --local best_angle = 0.0;
 
     local curtime = GameRules.GetGameTime();
 
-    Blocker.FountainOrigin = Entity.GetAbsOrigin(Blocker.Fountain);
+    --CreepsBlocker.FountainOrigin = Entity.GetAbsOrigin(CreepsBlocker.Fountain);
 
-    for i, npc in ipairs(Blocker.Creeps) do
+    for i, npc in ipairs(CreepsBlocker.Creeps) do
         if NPC.IsCreep(npc) and not Entity.IsDormant(npc) and Entity.IsAlive(npc) then
             local creep_origin = Entity.GetAbsOrigin(npc)
 
             local ranged = false;
-            if Menu.IsEnabled(Blocker.Menu.SkipRangedCreep) and NPC.IsRanged(npc) then
+            if Menu.IsEnabled(CreepsBlocker.Menu.SkipRangedCreep) and NPC.IsRanged(npc) then
                 ranged = true;
             end;
 
-            local moves_to = Blocker.GetPredictedPosition(npc, 0.66);
+            local moves_to = CreepsBlocker.GetPredictedPosition(npc, CreepsBlocker.PredictTime);
 
             if not NPC.IsRunning(npc) or ranged then
                 -- do nothing here
@@ -113,93 +121,112 @@ function Blocker.OnUpdate()
                 distance = distance - hero_collision_size;
 
                 if distance <= best_distance then
-                    best_npc = npc;
-                    best_position = moves_to;
+                    --best_npc = npc;
+                    CreepsBlocker.BestPosition = moves_to;
                     best_distance = distance;
-                    best_angle = angle;
+                    --best_angle = angle;
                 end;
             end;
         end;
     end;
 
-    if best_position then
-        local pos_to_fountain_len = (best_position - Blocker.FountainOrigin):Length();
+    if CreepsBlocker.BestPosition then
+        --local pos_to_fountain_len = (CreepsBlocker.BestPosition - CreepsBlocker.FountainOrigin):Length();
         -- local name = NPC.GetUnitName(best_npc)
         local collision_size = creep_melee_collision_size;
 
-        if curtime > Blocker.Sleep then
-            Player.PrepareUnitOrders(Players.GetLocal(), Enum.UnitOrder.DOTA_UNIT_ORDER_MOVE_TO_POSITION, Blocker.User, best_position, nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_HERO_ONLY);
+        if curtime > CreepsBlocker.Sleep then
+            Player.PrepareUnitOrders(Players.GetLocal(), Enum.UnitOrder.DOTA_UNIT_ORDER_MOVE_TO_POSITION, CreepsBlocker.User, CreepsBlocker.BestPosition, nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_HERO_ONLY);
         end;
-        local dist = (best_position - origin):Length();
-        local speed = NPC.GetMoveSpeed(Blocker.User);
-        -- if curtime > Blocker.LastStop and dist >= 15 * speed / 315 and dist <= 150 * speed / 315 then
-        if curtime > Blocker.LastStop and dist >= 10 and dist <= 150 then
-            Blocker.LastStop = curtime + 0.25 * 315 / speed;
-            if Blocker.LessStopping then
-                -- Blocker.LastStop = curtime + 0.9
-            end
+        local dist = (CreepsBlocker.BestPosition - origin):Length();
+        local speed = NPC.GetMoveSpeed(CreepsBlocker.User);
+        -- if curtime > CreepsBlocker.NextStop and dist >= 15 * speed / 315 and dist <= 150 * speed / 315 then
+        if curtime > CreepsBlocker.NextStop and dist >= 10 and dist <= 150 then
+            CreepsBlocker.NextStop = curtime + 0.25 * 315 / speed;
+
+            --if CreepsBlocker.LessStopping and (CreepsBlocker.OldBestCreep ~= CreepsBlocker.BestCreep) then
+                --CreepsBlocker.NextStop = curtime + dist / speed + NPC.GetTimeToFacePosition(CreepsBlocker.User, CreepsBlocker.BestPosition) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING);
+                -- CreepsBlocker.NextStop = curtime + 0.9
+            --end;
             -- if speed < 315 then
-            --     Blocker.Sleep = curtime + 0.05
+            --     CreepsBlocker.Sleep = curtime + 0.05
             -- else
-            --     Blocker.Sleep = curtime + 0.07
+            --     CreepsBlocker.Sleep = curtime + 0.07
             -- end
-            Blocker.Sleep = curtime + 0.07 * 315 / speed;
-            Player.PrepareUnitOrders(Players.GetLocal(), Enum.UnitOrder.DOTA_UNIT_ORDER_STOP, Blocker.User, best_position, nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_HERO_ONLY);
+            CreepsBlocker.Sleep = curtime + 0.07 * 315 / speed;
+            Player.PrepareUnitOrders(Players.GetLocal(), Enum.UnitOrder.DOTA_UNIT_ORDER_STOP, CreepsBlocker.User, CreepsBlocker.BestPosition, nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_HERO_ONLY);
         end
     end
 
     -- get my line and towers
-    Blocker.LessStopping = false;
+    --[[
+    CreepsBlocker.LessStopping = false;
     local TOWER_WARNING = 350;
     for i, tower in pairs(top_towers) do
         local TowerOrigin = Entity.GetAbsOrigin(tower);
         if Entity.IsNPC(tower) and (origin - TowerOrigin):Length() <= TOWER_WARNING then
-            Blocker.LessStopping = true;
+            CreepsBlocker.LessStopping = true;
         end;
     end;
     for i, tower in pairs(mid_towers) do
         local TowerOrigin = Entity.GetAbsOrigin(tower);
         if Entity.IsNPC(tower) and (origin - TowerOrigin):Length() <= TOWER_WARNING then
-            Blocker.LessStopping = true;
+            CreepsBlocker.LessStopping = true;
         end;
     end;
     for i, tower in pairs(bottom_towers) do
         local TowerOrigin = Entity.GetAbsOrigin(tower);
         if Entity.IsNPC(tower) and (origin - TowerOrigin):Length() <= TOWER_WARNING then
-            Blocker.LessStopping = true;
+            CreepsBlocker.LessStopping = true;
         end;
     end;
+    ]]
 end;
 
-function Blocker.OnDraw()
+function CreepsBlocker.OnDraw()
 
-    if not Blocker.inited then return end;
+    if not CreepsBlocker.inited then return end;
 
-    if not Menu.IsEnabled(Blocker.Menu.ShowDebugMove) or not Menu.IsKeyDown(Blocker.Menu.Key) then
+    if not Menu.IsEnabled(CreepsBlocker.Menu.ShowDebugMove) or not Menu.IsKeyDown(CreepsBlocker.Menu.Key) then
         return false;
     end;
 
-    local origin = Entity.GetAbsOrigin(Blocker.User);
-
-    if Blocker.LessStopping then
+    local origin = Entity.GetAbsOrigin(CreepsBlocker.User);
+    --[[
+    if CreepsBlocker.LessStopping then
         local hx, hy = Renderer.WorldToScreen(origin);
         Renderer.SetDrawColor(0, 255, 255, 150);
         Renderer.DrawText(font, hx, hy, 'LESS STOPPING (TOWER NEAR)', 1);
     end;
+    ]]
 
-    for i, npc in ipairs(Blocker.Creeps) do
+    if CreepsBlocker.BestPosition then
+        local x, y = Renderer.WorldToScreen(origin);
+        Renderer.SetDrawColor(255, 33, 33, 150);
+        CreepsBlocker.DrawCircle(CreepsBlocker.BestPosition, CreepsBlocker.UserCollisionSize);
+        CreepsBlocker.DrawCircle(origin, CreepsBlocker.UserCollisionSize);
+        local x2, y2 = Renderer.WorldToScreen(CreepsBlocker.BestPosition);
+        Renderer.DrawLine(x, y, x2, y2);
+    end;
+
+    if not CreepsBlocker.Creeps or (#CreepsBlocker.Creeps < 2) then
+        return false;
+    end;
+
+    for i, npc in ipairs(CreepsBlocker.Creeps) do
         if NPC.IsCreep(npc) and not Entity.IsDormant(npc) and Entity.IsAlive(npc) then
+            Renderer.SetDrawColor(33, 33, 33, 150);
             local creep_origin = Entity.GetAbsOrigin(npc);
 
             local ranged = false;
-            if Menu.IsEnabled(Blocker.Menu.SkipRangedCreep) and NPC.IsRanged(npc) then
+            if Menu.IsEnabled(CreepsBlocker.Menu.SkipRangedCreep) and NPC.IsRanged(npc) then
                 ranged = true;
             end;
 
             local x, y = Renderer.WorldToScreen(creep_origin);
-            Blocker.DrawCircle(creep_origin, creep_melee_collision_size);
+            CreepsBlocker.DrawCircle(creep_origin, creep_melee_collision_size);
 
-            local moves_to = Blocker.GetPredictedPosition(npc, 0.66);
+            local moves_to = CreepsBlocker.GetPredictedPosition(npc, 0.66);
 
             if not NPC.IsRunning(npc) or ranged then
                 -- do nothing here
@@ -212,26 +239,26 @@ function Blocker.OnDraw()
 end;
 
 -- return predicted position
-function Blocker.GetPredictedPosition(npc, delay)
+function CreepsBlocker.GetPredictedPosition(npc, delay)
     local pos = Entity.GetAbsOrigin(npc);
     if not NPC.IsRunning(npc) or not delay then return pos end;
     local totalLatency = (NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING)); -- * 2 -- this may fix bot is not stopping at high ping
     delay = delay + totalLatency;
 
     local dir = Entity.GetRotation(npc):GetForward():Normalized();
-    local speed = Blocker.GetMoveSpeed(npc);
+    local speed = CreepsBlocker.GetMoveSpeed(npc);
 
     return pos + dir:Scaled(speed * delay);
 end;
 
-function Blocker.GetMoveSpeed(npc)
+function CreepsBlocker.GetMoveSpeed(npc)
     --local base_speed = NPC.GetBaseSpeed(npc);
     --local bonus_speed = NPC.GetMoveSpeed(npc) - NPC.GetBaseSpeed(npc);
     
     return  NPC.GetMoveSpeed(npc);--base_speed + bonus_speed;
 end;
 
-function Blocker.DrawCircle(UnitPos, radius)
+function CreepsBlocker.DrawCircle(UnitPos, radius)
     local x1, y1 = Renderer.WorldToScreen(UnitPos)
     if x1 < size_x and x1 > 0 and y1 < size_y and y1 > 0 then
         local x4, y4, x3, y3, visible3
@@ -246,15 +273,15 @@ function Blocker.DrawCircle(UnitPos, radius)
     end;
 end;
 
-function Blocker.Reset()
-    Blocker.inited = false;
-    Blocker.Fountain = nil;
+function CreepsBlocker.Reset()
+    CreepsBlocker.inited = false;
+    CreepsBlocker.Fountain = nil;
     top_towers = {};
     mid_towers = {};
     bottom_towers = {};
 end;
 
-function Blocker.getFountain(Hero)
+function CreepsBlocker.getFountain(Hero)
 
     local team = 'badguys';
     my_team = Entity.GetTeamNum(Hero)
@@ -270,9 +297,9 @@ function Blocker.getFountain(Hero)
 
                 if name == "dota_fountain" then
                     if Entity.IsSameTeam(Hero, npc) then
-                        Blocker.Fountain = npc;
+                        CreepsBlocker.Fountain = npc;
                     -- else
-                    --     Blocker.EnemyFountain = npc
+                    --     CreepsBlocker.EnemyFountain = npc
                     end;
                 end;
 
@@ -311,4 +338,4 @@ function Blocker.getFountain(Hero)
     end;
 end;
 --]]
-return Blocker
+return CreepsBlocker
