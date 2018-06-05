@@ -142,7 +142,7 @@ function CreepsBlocker.OnUpdate()
         local speed = NPC.GetMoveSpeed(CreepsBlocker.User);
         -- if curtime > CreepsBlocker.NextStop and dist >= 15 * speed / 315 and dist <= 150 * speed / 315 then
         if curtime > CreepsBlocker.NextStop and dist >= 10 and dist <= 150 then
-            CreepsBlocker.NextStop = curtime + 0.25 * 315 / speed;
+            CreepsBlocker.NextStop = curtime + 79 / speed;--0.25 * 315 / speed;
 
             --if CreepsBlocker.LessStopping and (CreepsBlocker.OldBestCreep ~= CreepsBlocker.BestCreep) then
                 --CreepsBlocker.NextStop = curtime + dist / speed + NPC.GetTimeToFacePosition(CreepsBlocker.User, CreepsBlocker.BestPosition) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING);
@@ -153,7 +153,7 @@ function CreepsBlocker.OnUpdate()
             -- else
             --     CreepsBlocker.Sleep = curtime + 0.07
             -- end
-            CreepsBlocker.Sleep = curtime + 0.07 * 315 / speed;
+            CreepsBlocker.Sleep = curtime + 22 / speed;--0.07 * 315 / speed;
             Player.PrepareUnitOrders(Players.GetLocal(), Enum.UnitOrder.DOTA_UNIT_ORDER_STOP, CreepsBlocker.User, CreepsBlocker.BestPosition, nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_HERO_ONLY);
         end
     end
