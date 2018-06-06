@@ -125,7 +125,16 @@ InfoScreen.PseudoData.ChanseTable = {
 
 InfoScreen.GameData = {};
 
-InfoScreen.GameData.PassiveSkillsDamageMul = {
+InfoScreen.GameData.CritAnimationList = {
+  ["phantom_assassin_attack_crit_anim"] = true,
+  ["attack_crit_alt_anim"] = 46,
+  ["attack_crit_alt_injured"] = 22,
+  ["attack_crit_anim"] = true,
+  ["Attack Critical_anim"] = true,
+  ["attack_event"] = true
+}
+
+InfoScreen.GameData.CriticalSkills = {
   [0] = 0;
   ["juggernaut_blade_dance"] = {20, 25, 30, 35},
   ["skeleton_king_mortal_strike"] = {9, 11, 13, 15}, --15],//
@@ -342,9 +351,9 @@ function InfoScreen.CheckInTable(list, SkillToCheck)
         InfoScreen.Pseudo.NoLuckCount[name] = 1;
       end;
       if (type(chanses) == "table") then
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02, list[0]};
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02), list[0]};
       else
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * InfoScreen.PseudoData.ChanseTable[chanses] + 0.02, list[0]};
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses] + 0.02), list[0]};
       end;
       --]=]
       return true;
@@ -354,8 +363,21 @@ function InfoScreen.CheckInTable(list, SkillToCheck)
 end;
 
 function InfoScreen.OnUnitAnimation(animation)
-	if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.User then
-
+  if InfoScreen.Menu.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
+    Log.Write(animation.sequenceName.."="..animation.sequence);
+    if not InfoScreen.GameData.CritAnimationList[animation.sequenceName] then
+      for k, v in pairs(InfoScreen.Pseudo.FindedList) do
+        if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
+          InfoScreen.Pseudo.NoLuckCount[k] = InfoScreen.Pseudo.NoLuckCount[k] + 1;
+        end;
+      end;
+    else
+      for k, v in pairs(InfoScreen.Pseudo.FindedList) do
+        if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
+          InfoScreen.Pseudo.NoLuckCount[k] = 1;
+        end;
+      end;
+    end;
 	end;
 end;
 
@@ -376,7 +398,7 @@ function InfoScreen.OnUpdate()
     if InfoScreen.User.Update() then
       InfoScreen.Pseudo.Enabled = false;
       for k, v in pairs(InfoScreen.User.Abilities) do
-        InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.PassiveSkillsDamageMul, v);
+        InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.CriticalSkills, v);
       end;
       for k, v in pairs(InfoScreen.User.Abilities) do
         InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.PassiveSkillsChanse, v);
