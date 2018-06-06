@@ -268,6 +268,7 @@ function LastHitCreep.IsCastNow(user)
 			return true;
 		end;
 	end;
+	return false;
 end;
 
 function LastHitCreep.PreventPlayer(user)
@@ -709,7 +710,7 @@ function LastHitCreep.OnUnitAnimationEnd(animation)
 		return;
 	end;
 
-	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
+	if animation.unit and (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
 			--Log.Write("LT HP END="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 			if (Entity.GetHealth(LastHitCreep.User.LastTarget)>0) then
