@@ -129,13 +129,13 @@ InfoScreen.GameData.CritAnimationList = {
   ["phantom_assassin_attack_crit_anim"] = true,
   ["attack_crit_alt_anim"] = 46,
   ["attack_crit_alt_injured"] = 22,
-  ["attack_crit_anim"] = true,
+  ["attack_crit_anim"] = 19,
   ["Attack Critical_anim"] = true,
   ["attack_event"] = true
 }
 
 InfoScreen.GameData.CriticalSkills = {
-  [0] = 0;
+  [0] = 0,
   ["juggernaut_blade_dance"] = {20, 25, 30, 35},
   ["skeleton_king_mortal_strike"] = {9, 11, 13, 15}, --15],//
   ["phantom_assassin_coup_de_grace"] = 15,-- talant 20
@@ -149,16 +149,20 @@ InfoScreen.GameData.CriticalSkills = {
 --  ["obsidian_destroyer_essence_aura"] = 40-- talant 55
 --};
 
-InfoScreen.GameData.PassiveSkillsChanse = {
-  [0] = 1;
+InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage = {
+  [0] = 1,
+  --["tiny_craggy_exterior"] = {10, 15, 20, 25},
+  --["phantom_assassin_blur"] ={20,30,40,50},
+  ["legion_commander_moment_of_courage"] = 25,
+  ["axe_counter_helix"] = 20
+};
+
+InfoScreen.GameData.PassiveSkillsChanseOnAttack = {
+  [0] = 2,
   ["spirit_breaker_greater_bash"] = 17,
   ["slardar_bash"] = {10, 15, 20, 25},
   ["faceless_void_time_lock"] = {10, 15, 20, 25},
   --["phantom_lancer_juxtapose"] ={40,45,50},
-  --["tiny_craggy_exterior"] = {10, 15, 20, 25},
-  --["phantom_assassin_blur"] ={20,30,40,50},
-  ["legion_commander_moment_of_courage"] = 25,
-  ["axe_counter_helix"] = 20,
   ["troll_warlord_berserkers_rage"] = 10,
   ["sniper_headshot"] = 40
 };
@@ -198,7 +202,8 @@ InfoScreen.Renderer.PanelHeight = 15;
 
 --Menu
 function InfoScreen.Menu.AddOptionBool(path, name, list)
-  list[name] = Menu.AddOptionBool(path, name, false);
+  Log.Write("InfoScreen : Add to menu - "..name);
+  list[name] = Menu.AddOptionBool(path, name, true);
 end;
 function InfoScreen.Menu.Pseudo.isEnabled()
 	return Menu.IsEnabled(InfoScreen.Menu.Pseudo.Enabled);
@@ -259,6 +264,7 @@ function D2Unit:new (entity)
       if ((GameRules.GetGameTime() - object.LastUpdateTime) > 0.01) then
         object.LastUpdateTime = GameRules.GetGameTime();
         --
+        object.IsAlive = Entity.IsAlive(entity);
         object.HP = Entity.GetHealth(entity);
         object.MaxHP = Entity.GetMaxHealth(entity);
         --
@@ -307,6 +313,10 @@ function D2Unit:new (entity)
       object.AbsOrigin = Entity.GetAbsOrigin(self.Entity);
       return object.AbsOrigin;
     end;
+    function object:IsAlive()
+      object.IsAlive = Entity.IsAlive(self.Entity);
+      return object.IsAlive;
+    end;
     function object:GetLevel()
       object.Level = NPC.GetCurrentLevel(self.Entity);
       return object.Level;
@@ -342,6 +352,7 @@ function InfoScreen.CheckInTable(list, SkillToCheck)
   for name, chanses in pairs(list) do
     local AbilityName = Ability.GetName(SkillToCheck);
     if (name == AbilityName) then
+      --Log.Write(AbilityName);
       local chanse = 0;
       local level = Ability.GetLevel(SkillToCheck);
       local NoLuckCount = 1;
@@ -351,9 +362,9 @@ function InfoScreen.CheckInTable(list, SkillToCheck)
         InfoScreen.Pseudo.NoLuckCount[name] = 1;
       end;
       if (type(chanses) == "table") then
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02), list[0]};
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02), list[0], SkillToCheck};
       else
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses] + 0.02), list[0]};
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses] + 0.02), list[0], SkillToCheck};
       end;
       --]=]
       return true;
@@ -362,19 +373,57 @@ function InfoScreen.CheckInTable(list, SkillToCheck)
   return false;
 end;
 
+function InfoScreen.GetTarget(creep, team)
+	if not creep then return end;
+	if not Entity.IsEntity(creep) then return end;
+	if not Entity.IsAlive(creep) then return end;
+	
+	local creepRotation = Entity.GetRotation(creep):GetForward():Normalized();
+	
+	local targets = Entity.GetUnitsInRadius(creep, 178, team);
+	if next(targets) == nil then return end;
+	if not targets then return end;
+
+	if #targets == 1 then
+		if (targets[1] ~= creep) and Entity.IsEntity(targets[1]) then
+			return targets[1];
+		end;
+	else
+		local adjustedHullSize = 20;
+		for i, v in ipairs(targets) do
+			if v and (v ~= creep) and Entity.IsEntity(v) and Entity.IsAlive(v) then
+				local vpos = Entity.GetAbsOrigin(v);
+				local vposZ = vpos:GetZ();
+				local pos = Entity.GetAbsOrigin(creep);
+				for i = 1, 9 do
+					local searchPos = pos + creepRotation:Scaled(25*(9-i));
+					searchPos:SetZ(vposZ);
+					if NPC.IsPositionInRange(v, searchPos, adjustedHullSize, 0) then
+						return v;
+					end;
+				end;
+			end;
+		end;
+	end;
+	return;
+end
+
 function InfoScreen.OnUnitAnimation(animation)
   if InfoScreen.Menu.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
-    Log.Write(animation.sequenceName.."="..animation.sequence);
-    if not InfoScreen.GameData.CritAnimationList[animation.sequenceName] then
-      for k, v in pairs(InfoScreen.Pseudo.FindedList) do
-        if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
-          InfoScreen.Pseudo.NoLuckCount[k] = InfoScreen.Pseudo.NoLuckCount[k] + 1;
+    local ent = InfoScreen.GetTarget(InfoScreen.User.Entity, Enum.TeamType.TEAM_BOTH);
+    --Log.Write(animation.sequenceName.."="..animation.sequence.." "..animation.sequenceName:lower():find("attack"));
+    if ent and not Entity.IsSameTeam(ent, InfoScreen.User.Entity) then
+      if (not InfoScreen.GameData.CritAnimationList[animation.sequenceName]) and (animation.sequenceName:lower():find("attack")) then
+        for k, v in pairs(InfoScreen.Pseudo.FindedList) do
+          if (v[3]==InfoScreen.GameData.CriticalSkills[0]) or (v[3]==InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) then
+            InfoScreen.Pseudo.NoLuckCount[k] = InfoScreen.Pseudo.NoLuckCount[k] + 1;
+          end;
         end;
-      end;
-    else
-      for k, v in pairs(InfoScreen.Pseudo.FindedList) do
-        if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
-          InfoScreen.Pseudo.NoLuckCount[k] = 1;
+      else
+        for k, v in pairs(InfoScreen.Pseudo.FindedList) do
+          if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
+            InfoScreen.Pseudo.NoLuckCount[k] = 1;
+          end;
         end;
       end;
     end;
@@ -399,14 +448,17 @@ function InfoScreen.OnUpdate()
       InfoScreen.Pseudo.Enabled = false;
       for k, v in pairs(InfoScreen.User.Abilities) do
         InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.CriticalSkills, v);
-      end;
-      for k, v in pairs(InfoScreen.User.Abilities) do
         InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.PassiveSkillsChanse, v);
+        InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage, v);
+        InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.PassiveSkillsChanseOnAttack, v);
       end;
       if (InfoScreen.Pseudo.Enabled) then
         for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
           if not InfoScreen.Menu.Pseudo.Panels[chanselist[1]] then
             InfoScreen.Menu.AddOptionBool(InfoScreen.Menu.Pseudo.PanelsPath, chanselist[1], InfoScreen.Menu.Pseudo.Panels);
+          end;
+          if ((chanselist[3] == 2) or (chanselist[3] == 1)) and (Ability.IsInAbilityPhase(chanselist[4]) or ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.1)) or not InfoScreen.User.IsAlive) then
+            InfoScreen.Pseudo.NoLuckCount[name] = 1;
           end;
         end;
       end;
@@ -416,20 +468,20 @@ end;
 
 function InfoScreen.Renderer.DrawBar(x, y, width, height, percent, text, index)
   Renderer.SetDrawColor(0, 0, 0, 125);
-  Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset, width, height);
+  Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset - height*index, width, height);
   Renderer.SetDrawColor(0, 0, 0, 255);
-  Renderer.DrawOutlineRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset, width, height);
+  Renderer.DrawOutlineRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset - height*index, width, height);
   Renderer.SetDrawColor(222, 222, 0, 125);
-  Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset + InfoScreen.Renderer.BorderSize,y + InfoScreen.Renderer.YTopOffset + InfoScreen.Renderer.BorderSize, math.ceil(InfoScreen.Renderer.PanelWidth * percent), height - InfoScreen.Renderer.BorderSize * 2);
+  Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset + InfoScreen.Renderer.BorderSize,y + InfoScreen.Renderer.YTopOffset + InfoScreen.Renderer.BorderSize - height*index, math.ceil(InfoScreen.Renderer.PanelWidth * percent), height - InfoScreen.Renderer.BorderSize * 2);
   Renderer.SetDrawColor(222, 222, 222, 255);
-  Renderer.DrawText(InfoScreen.Renderer.Font, x + InfoScreen.Renderer.XOffset + InfoScreen.Renderer.BorderSize, y + InfoScreen.Renderer.YTopOffset + InfoScreen.Renderer.BorderSize * 2, text, 1);
+  Renderer.DrawText(InfoScreen.Renderer.Font, x + InfoScreen.Renderer.XOffset + InfoScreen.Renderer.BorderSize, y + InfoScreen.Renderer.YTopOffset + InfoScreen.Renderer.BorderSize * 2 - height*index, text, 1);
 end;
 function InfoScreen.OnDraw()
-  if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.Pseudo.Enabled and InfoScreen.User then
+  if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.Pseudo.Enabled and InfoScreen.User and InfoScreen.User.IsAlive then
     InfoScreen.User:GetAbsOrigin(); 
     InfoScreen.User.AbsOrigin:SetZ(InfoScreen.User.AbsOrigin:GetZ() + InfoScreen.User.HealthBarOffset);
     local hx, hy = Renderer.WorldToScreen(InfoScreen.User.AbsOrigin);
-    local i = 1;
+    local i = 0;
     for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
       if InfoScreen.Menu.Pseudo.Panels[chanselist[1]] and Menu.IsEnabled(InfoScreen.Menu.Pseudo.Panels[chanselist[1]]) then
         InfoScreen.Renderer.DrawBar(hx, hy, InfoScreen.Renderer.PanelWidth, InfoScreen.Renderer.PanelHeight, chanselist[2], "  "..chanselist[1].." "..math.ceil(chanselist[2] * 100).."%", i);
@@ -444,7 +496,7 @@ function InfoScreen.OnGameStart()
 end;
 function InfoScreen.OnGameEnd()
   InfoScreen.User = nil;
-  for name, option in InfoScreen.Menu.Pseudo.Panels do
+  for name, option in pairs(InfoScreen.Menu.Pseudo.Panels) do
     Menu.RemoveOption(option);
   end;
   InfoScreen.Menu.Pseudo.Panels = {};
