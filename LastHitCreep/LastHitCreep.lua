@@ -263,8 +263,8 @@ function LastHitCreep.IsCastNow(user)
 	if NPC.HasModifier(user, "modifier_teleporting") then return true end;
 	for i=0, 24 do	
 		local abil = NPC.GetAbilityByIndex(user, i);
-		if abil and Entity.IsEntity(abil) and (Ability.GetLevel(abil) >= 1) and not Ability.IsHidden(abil) and not Ability.IsPassive(abil) and Ability.IsInAbilityPhase(abil) then
-			Log.Write(Ability.GetName(abil));
+		if abil and Entity.IsEntity(abil) and (Ability.GetLevel(abil) >= 1) and not Ability.IsHidden(abil) and not Ability.IsPassive(abil) and (Ability.IsInAbilityPhase(abil) or Ability.IsChannelling(abil)) then
+			--Log.Write(Ability.GetName(abil));
 			return true;
 		end;
 	end;
@@ -710,7 +710,7 @@ function LastHitCreep.OnUnitAnimationEnd(animation)
 		return;
 	end;
 
-	if animation.unit and (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
+	if animation.unit and Entity.IsEntity(animation.unit) and (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
 		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
 			--Log.Write("LT HP END="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
 			if (Entity.GetHealth(LastHitCreep.User.LastTarget)>0) then
