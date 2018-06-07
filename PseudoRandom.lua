@@ -189,6 +189,7 @@ InfoScreen.Menu.Pseudo = {};
 InfoScreen.Menu.Pseudo.Path = {"Info Screen", "Pseudo"};
 InfoScreen.Menu.Pseudo.PanelsPath = {"Info Screen", "Pseudo", "Panels"};
 InfoScreen.Menu.Pseudo.Enabled = Menu.AddOptionBool(InfoScreen.Menu.Pseudo.Path, "Enabled", false);
+InfoScreen.Menu.Debug = Menu.AddOptionBool({"Info Screen"}, "Debug Log", false);
 InfoScreen.Menu.Pseudo.OverHero = Menu.AddOptionBool(InfoScreen.Menu.Pseudo.Path, "Show Over Hero", true);
 InfoScreen.Menu.Pseudo.Panels = {};
 
@@ -205,8 +206,11 @@ function InfoScreen.Menu.AddOptionBool(path, name, list)
   Log.Write("InfoScreen : Add to menu - "..name);
   list[name] = Menu.AddOptionBool(path, name, true);
 end;
-function InfoScreen.Menu.Pseudo.isEnabled()
+function InfoScreen.Pseudo.isEnabled()
 	return Menu.IsEnabled(InfoScreen.Menu.Pseudo.Enabled);
+end;
+function InfoScreen.isDebug()
+	return Menu.IsEnabled(InfoScreen.Menu.Debug);
 end;
 --Menu
 
@@ -232,7 +236,7 @@ function InfoScreen.GetItems(entity)
   return list;
 end;
 
---Dota 2 Clases Entity based 
+--Dota 2 Clases Entity based OOP
 local D2Unit = {};
 function D2Unit:new (entity)
   local object = nil;
@@ -290,7 +294,7 @@ function D2Unit:new (entity)
     end;
     function object:ForceUpdate()
       object.LastUpdateTime = 0;
-      object:Update();
+      return object:Update();
     end;
     function object:GetItem(Name)
       return NPC.GetItem(self.Entity, Name);
@@ -330,47 +334,18 @@ function D2Unit:new (entity)
   end;
   return object;
 end;
+--Dota 2 Clases Entity based OOP
 
 function InfoScreen.IsCastNow(entity)
 	if not entity then return false, nil end;	
 	for i=0, 24 do	
 		local abil = NPC.GetAbilityByIndex(entity, i);
 		if abil and Entity.IsEntity(abil) and (Ability.GetLevel(abil) >= 1) and not Ability.IsHidden(abil) and not Ability.IsPassive(abil) and (Ability.IsInAbilityPhase(abil) or Ability.IsChanneling(abil)) then
-			--Log.Write(Ability.GetName(abil));
 			return true, abil;
 		end;
   end;
   if NPC.HasModifier(entity, "modifier_teleporting") then return true, nil end;
 	return false, nil;
-end;
---Utils
-
-function InfoScreen.CheckInTable(list, SkillToCheck)
-  if not list or not SkillToCheck then
-    return false;
-  end;
-  for name, chanses in pairs(list) do
-    local AbilityName = Ability.GetName(SkillToCheck);
-    if (name == AbilityName) then
-      --Log.Write(AbilityName);
-      local chanse = 0;
-      local level = Ability.GetLevel(SkillToCheck);
-      local NoLuckCount = 1;
-      if InfoScreen.Pseudo.NoLuckCount[name] then
-        NoLuckCount = InfoScreen.Pseudo.NoLuckCount[name];
-      else
-        InfoScreen.Pseudo.NoLuckCount[name] = 1;
-      end;
-      if (type(chanses) == "table") then
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02), list[0], SkillToCheck};
-      else
-        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses] + 0.02), list[0], SkillToCheck};
-      end;
-      --]=]
-      return true;
-    end;
-  end;
-  return false;
 end;
 
 function InfoScreen.GetTarget(creep, team)
@@ -406,23 +381,80 @@ function InfoScreen.GetTarget(creep, team)
 		end;
 	end;
 	return;
-end
+end;
+--Utils
+
+function InfoScreen.CheckInTable(list, SkillToCheck)
+  if not list or not SkillToCheck then
+    return false;
+  end;
+  for name, chanses in pairs(list) do
+    local AbilityName = Ability.GetName(SkillToCheck);
+    if (name == AbilityName) then
+      local chanse = 0;
+      local level = Ability.GetLevel(SkillToCheck);
+      local NoLuckCount = 1;
+      if InfoScreen.Pseudo.NoLuckCount[name] then
+        NoLuckCount = InfoScreen.Pseudo.NoLuckCount[name];
+      else
+        InfoScreen.Pseudo.NoLuckCount[name] = 1;
+      end;
+      if (type(chanses) == "table") then
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses[level]] + 0.02), list[0], SkillToCheck};
+      else
+        InfoScreen.Pseudo.FindedList[name] = {name:gsub(InfoScreen.User.Name:gsub('npc_dota_hero_', '', 1)..'_', '', 1):gsub("_", " "), NoLuckCount * (InfoScreen.PseudoData.ChanseTable[chanses] + 0.02), list[0], SkillToCheck};
+      end;
+      return true;
+    end;
+  end;
+  return false;
+end;
+
+function InfoScreen.OnProjectile(projectile)
+  if InfoScreen.Pseudo.isEnabled() and particle and InfoScreen.User then
+    if InfoScreen.isDebug then
+      Log.Write("S="..projectile.source.." T="..projectile.target.." MS="..projectile.moveSpeed.." Names="..projectile.fullName..", "..projectile.name);
+    end;
+  end;
+end;
+
+function InfoScreen.OnLinearProjectileCreate(projectile)
+  if InfoScreen.Pseudo.isEnabled() and particle and InfoScreen.User then
+    if InfoScreen.isDebug then
+      Log.Write("S="..projectile.source.." MS="..projectile.maxSpeed.." Names="..projectile.fullName..", "..projectile.name);
+    end;
+  end;
+end;
+
+function InfoScreen.OnParticleCreate(particle)
+  if InfoScreen.Pseudo.isEnabled() and particle and InfoScreen.User then
+    --hero_levelup OnLevelUp
+    if InfoScreen.isDebug then
+      Log.Write(particle.fullName.." "..particle.name);
+    end;
+    for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
+      if (particle.name:gsub("_", "")==name:gsub("_", "")) and (chanselist[3]==InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage[0]) then
+        InfoScreen.Pseudo.NoLuckCount[name] = 1;
+      end;
+    end;
+  end;
+end;
 
 function InfoScreen.OnUnitAnimation(animation)
-  if InfoScreen.Menu.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
+  if InfoScreen.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
     local ent = InfoScreen.GetTarget(InfoScreen.User.Entity, Enum.TeamType.TEAM_BOTH);
     --Log.Write(animation.sequenceName.."="..animation.sequence.." "..animation.sequenceName:lower():find("attack"));
     if ent and not Entity.IsSameTeam(ent, InfoScreen.User.Entity) then
       if (not InfoScreen.GameData.CritAnimationList[animation.sequenceName]) and (animation.sequenceName:lower():find("attack")) then
-        for k, v in pairs(InfoScreen.Pseudo.FindedList) do
-          if (v[3]==InfoScreen.GameData.CriticalSkills[0]) or (v[3]==InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) then
-            InfoScreen.Pseudo.NoLuckCount[k] = InfoScreen.Pseudo.NoLuckCount[k] + 1;
+        for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
+          if (chanselist[3]==InfoScreen.GameData.CriticalSkills[0]) or (chanselist[3]==InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) then
+            InfoScreen.Pseudo.NoLuckCount[name] = InfoScreen.Pseudo.NoLuckCount[name] + 1;
           end;
         end;
       else
-        for k, v in pairs(InfoScreen.Pseudo.FindedList) do
-          if (v[3]==InfoScreen.GameData.CriticalSkills[0]) then
-            InfoScreen.Pseudo.NoLuckCount[k] = 1;
+        for kname, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
+          if (chanselist[3]==InfoScreen.GameData.CriticalSkills[0]) then
+            InfoScreen.Pseudo.NoLuckCount[name] = 1;
           end;
         end;
       end;
@@ -431,20 +463,35 @@ function InfoScreen.OnUnitAnimation(animation)
 end;
 
 function InfoScreen.OnModifierCreate(entity, mod)
-	if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.User then
-
-	end;
-end;
-
-function InfoScreen.OnModifierDestroy(entity, mod)
-	if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.User then
-
+  if InfoScreen.Pseudo.isEnabled() and InfoScreen.User and mod then
+    local ModifierName = Modifier.GetName(mod);
+    local ModifierAbility = Modifier.GetAbility(mod);
+    if InfoScreen.isDebug then
+      if (NPC.GetUnitName(entity) ~= nil) then
+        Log.Write(NPC.GetUnitName(entity)); 
+      elseif entity then
+        Log.Write(Entity.GetClassName(entity));
+      end;
+      Log.Write(ModifierName); 
+    end;
+    if entity and (entity~=0) and NPC.IsEntityInRange(InfoScreen.User.Entity, entity, 250) then
+      for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
+        if (ModifierAbility==chanselist[4]) or ModifierName:lower():gsub("_", ""):find(name:lower():gsub("_", ""))--(v[3]==InfoScreen.GameData.CriticalSkills[0]) 
+        then
+          if InfoScreen.isDebug then
+            Log.Write(ModifierName.."="..name.." "..ModifierAbility.."="..chanselist[4]); 
+          end;
+          InfoScreen.Pseudo.NoLuckCount[name] = 1;
+        end;
+      end;
+    end;
 	end;
 end;
 
 function InfoScreen.OnUpdate()
-  if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.User then
+  if InfoScreen.Pseudo.isEnabled() and InfoScreen.User then
     if InfoScreen.User.Update() then
+      --
       InfoScreen.Pseudo.Enabled = false;
       for k, v in pairs(InfoScreen.User.Abilities) do
         InfoScreen.Pseudo.Enabled = InfoScreen.Pseudo.Enabled or InfoScreen.CheckInTable(InfoScreen.GameData.CriticalSkills, v);
@@ -457,8 +504,27 @@ function InfoScreen.OnUpdate()
           if not InfoScreen.Menu.Pseudo.Panels[chanselist[1]] then
             InfoScreen.Menu.AddOptionBool(InfoScreen.Menu.Pseudo.PanelsPath, chanselist[1], InfoScreen.Menu.Pseudo.Panels);
           end;
-          if ((chanselist[3] == 2) or (chanselist[3] == 1)) and (Ability.IsInAbilityPhase(chanselist[4]) or ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.1)) or not InfoScreen.User.IsAlive) then
+          if (Ability.GetCooldown(chanselist[4]) ~= 0) or 
+            Ability.IsChannelling(chanselist[4]) or 
+            Ability.IsInAbilityPhase(chanselist[4]) or 
+            ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.1)) or 
+            not Ability.IsReady(chanselist[4]) 
+          then
+            --if InfoScreen.isDebug then
+              Log.Write(Ability.GetName(chanselist[4]));
+              Log.Write(Ability.GetCooldown(chanselist[4]));
+            --end;
+            
+          end;
+          if ((chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) or (chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage[0])) and 
+            (Ability.IsInAbilityPhase(chanselist[4]) or ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.5)) or not InfoScreen.User.IsAlive) then
             InfoScreen.Pseudo.NoLuckCount[name] = 1;
+          end;
+          if (chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage[0]) then
+            if InfoScreen.User.HP < InfoScreen.Pseudo.OldHP then -- take damage???
+              InfoScreen.Pseudo.OldHP = InfoScreen.User.HP;--костыль
+              InfoScreen.Pseudo.NoLuckCount[name] = InfoScreen.Pseudo.NoLuckCount[name] + 1;
+            end;
           end;
         end;
       end;
@@ -467,6 +533,9 @@ function InfoScreen.OnUpdate()
 end;
 
 function InfoScreen.Renderer.DrawBar(x, y, width, height, percent, text, index)
+  if percent > 100 then
+    percent = 100;
+  end;
   Renderer.SetDrawColor(0, 0, 0, 125);
   Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset - height*index, width, height);
   Renderer.SetDrawColor(0, 0, 0, 255);
@@ -477,7 +546,7 @@ function InfoScreen.Renderer.DrawBar(x, y, width, height, percent, text, index)
   Renderer.DrawText(InfoScreen.Renderer.Font, x + InfoScreen.Renderer.XOffset + InfoScreen.Renderer.BorderSize, y + InfoScreen.Renderer.YTopOffset + InfoScreen.Renderer.BorderSize * 2 - height*index, text, 1);
 end;
 function InfoScreen.OnDraw()
-  if InfoScreen.Menu.Pseudo.isEnabled() and InfoScreen.Pseudo.Enabled and InfoScreen.User and InfoScreen.User.IsAlive then
+  if InfoScreen.Pseudo.isEnabled() and InfoScreen.Pseudo.Enabled and InfoScreen.User and InfoScreen.User.IsAlive then
     InfoScreen.User:GetAbsOrigin(); 
     InfoScreen.User.AbsOrigin:SetZ(InfoScreen.User.AbsOrigin:GetZ() + InfoScreen.User.HealthBarOffset);
     local hx, hy = Renderer.WorldToScreen(InfoScreen.User.AbsOrigin);
@@ -492,7 +561,9 @@ function InfoScreen.OnDraw()
 end;
 
 function InfoScreen.OnGameStart()
+  Log.Write("Game start");
   InfoScreen.User = D2Unit:new(Heroes.GetLocal());
+  InfoScreen.Pseudo.OldHP = InfoScreen.User.HP;--костыль
 end;
 function InfoScreen.OnGameEnd()
   InfoScreen.User = nil;
@@ -503,5 +574,6 @@ function InfoScreen.OnGameEnd()
 end;
 
 InfoScreen.User = D2Unit:new(Heroes.GetLocal());
+
 
 return InfoScreen;
