@@ -452,7 +452,7 @@ function InfoScreen.OnUnitAnimation(animation)
           end;
         end;
       else
-        for kname, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
+        for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
           if (chanselist[3]==InfoScreen.GameData.CriticalSkills[0]) then
             InfoScreen.Pseudo.NoLuckCount[name] = 1;
           end;
