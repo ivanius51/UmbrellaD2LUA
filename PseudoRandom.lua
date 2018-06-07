@@ -504,20 +504,22 @@ function InfoScreen.OnUpdate()
           if not InfoScreen.Menu.Pseudo.Panels[chanselist[1]] then
             InfoScreen.Menu.AddOptionBool(InfoScreen.Menu.Pseudo.PanelsPath, chanselist[1], InfoScreen.Menu.Pseudo.Panels);
           end;
-          if (Ability.GetCooldown(chanselist[4]) ~= 0) or 
+          --[[
+          if 
             Ability.IsChannelling(chanselist[4]) or 
             Ability.IsInAbilityPhase(chanselist[4]) or 
+            (Ability.GetCooldown(chanselist[4]) ~= 0) or 
             ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.1)) or 
             not Ability.IsReady(chanselist[4]) 
           then
-            --if InfoScreen.isDebug then
+            if InfoScreen.isDebug then
               Log.Write(Ability.GetName(chanselist[4]));
               Log.Write(Ability.GetCooldown(chanselist[4]));
-            --end;
-            
+            end;
           end;
+          ]]
           if ((chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) or (chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage[0])) and 
-            (Ability.IsInAbilityPhase(chanselist[4]) or ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.5)) or not InfoScreen.User.IsAlive) then
+            (Ability.IsInAbilityPhase(chanselist[4]) or (Ability.GetCooldown(chanselist[4]) ~= 0) or ((Ability.SecondsSinceLastUse(chanselist[4]) ~= -1) and (Ability.SecondsSinceLastUse(chanselist[4]) <= 0.5)) or not InfoScreen.User.IsAlive) then
             InfoScreen.Pseudo.NoLuckCount[name] = 1;
           end;
           if (chanselist[3] == InfoScreen.GameData.PassiveSkillsChanseAtTakeDamage[0]) then
@@ -573,7 +575,7 @@ function InfoScreen.OnGameEnd()
   InfoScreen.Menu.Pseudo.Panels = {};
 end;
 
-InfoScreen.User = D2Unit:new(Heroes.GetLocal());
+--InfoScreen.User = D2Unit:new(Heroes.GetLocal());
 
 
 return InfoScreen;
