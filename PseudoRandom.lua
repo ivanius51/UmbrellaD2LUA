@@ -1620,9 +1620,10 @@ function D2Unit:new (entity)
     --methods
     function object:Update(Ent)
       if ((GameRules.GetGameTime() - object.LastUpdateTime) > 0.01) then
-        if Ent then-- and (entity~=ent)
-          Log.Write(entity.." "..Ent);
+        if Ent and (entity~=ent) then
+          --Log.Write(entity.."="..Ent);
           entity = Ent;
+          object:Init();
         end;
         object.LastUpdateTime = GameRules.GetGameTime();
         --
@@ -1640,7 +1641,7 @@ function D2Unit:new (entity)
         object.Damage = NPC.GetTrueDamage(entity);
         object.MaximumDamage = NPC.GetTrueMaximumDamage(entity);
         object.AttackRange = NPC.GetAttackRange(entity);
-	      object.TrueAttackPoint = (object.AttackPoint / (1 + (NPC.GetIncreasedAttackSpeed(entity) / 100))) + (LastHitCreep.User.AttackPoint * 0.17);
+	      object.TrueAttackPoint = (object.AttackPoint / (1 + (NPC.GetIncreasedAttackSpeed(entity) / 100))) + (object.AttackPoint * 0.17);
         object.MoveSpeed = NPC.GetMoveSpeed(entity);
         object.Level = NPC.GetCurrentLevel(entity);
         --lists
@@ -1694,6 +1695,7 @@ function D2Unit:new (entity)
   end;
   return object;
 end;
+
 --Dota 2 Clases Entity based OOP
 
 function InfoScreen.IsCastNow(entity)
@@ -1715,9 +1717,10 @@ function InfoScreen.GetTarget(creep, team)
 	
 	local creepRotation = Entity.GetRotation(creep):GetForward():Normalized();
 	
-	local targets = Entity.GetUnitsInRadius(creep, 280, team);
+  local targets = Entity.GetUnitsInRadius(creep, 280, team);
+
+  if not targets then return end;
 	if next(targets) == nil then return end;
-	if not targets then return end;
 
 	if #targets <= 2 then
 		if (targets[1] ~= creep) and Entity.IsEntity(targets[1]) then
@@ -1741,6 +1744,10 @@ function InfoScreen.GetTarget(creep, team)
 		end;
 	end;
 	return;
+end;
+
+function Ability.HasBehavior(ability, behavior)
+  return Ability.GetBehavior(ability) & behavior ~= 0;
 end;
 --Utils
 
@@ -1817,7 +1824,7 @@ function InfoScreen.OnParticleCreate(particle)
 end;
 function InfoScreen.OnParticleUpdate(particle)
   if InfoScreen.isDebug() then
-    Log.Write(particle.index.." "..particle.position.." "..particle.controlPoint);
+    Log.Write(particle.index.." "..tostring(particle.position).." "..particle.controlPoint);
   end;
 end;
 function InfoScreen.OnParticleUpdateEntity(particle)
@@ -1831,8 +1838,6 @@ function InfoScreen.OnParticleUpdateEntity(particle)
   end;
 end;
 
-
-
 function InfoScreen.OnUnitAnimation(animation)
   if InfoScreen.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
     local ent = InfoScreen.GetTarget(InfoScreen.User.Entity, Enum.TeamType.TEAM_ENEMY);
@@ -1844,7 +1849,7 @@ function InfoScreen.OnUnitAnimation(animation)
       if not Entity.IsSameTeam(ent, InfoScreen.User.Entity) then
         if (not InfoScreen.GameData.CritAnimationList[animation.sequenceName]) and (animation.sequenceName:lower():find("attack")) then
           for name, chanselist in pairs(InfoScreen.Pseudo.FindedList) do
-            if (chanselist[3]==InfoScreen.GameData.CriticalSkills[0]) or (chanselist[3]==InfoScreen.GameData.PassiveSkillsChanseOnAttack[0]) then
+            if (not Ability.HasBehavior(chanselist[4], Enum.AbilityBehavior.DOTA_ABILITY_BEHAVIOR_TOGGLE) or Ability.GetToggleState(chanselist[4])) and ((chanselist[3]==InfoScreen.GameData.CriticalSkills[0]) or (chanselist[3]==InfoScreen.GameData.PassiveSkillsChanseOnAttack[0])) then
               table.insert(InfoScreen.Pseudo.AttackAnimationCheck.Skills, name);
               --Log.Write("start anim to "..name);
               --InfoScreen.Pseudo.NoLuckCount[name] = InfoScreen.Pseudo.NoLuckCount[name] + 1;
@@ -1866,7 +1871,7 @@ end;
 function InfoScreen.OnUnitAnimationEnd(animation)
   if InfoScreen.Pseudo.isEnabled() and animation and InfoScreen.User and (animation.unit==InfoScreen.User.Entity) then
     if (InfoScreen.Pseudo.AttackAnimationCheck.Time ~= 0) then
-      if ((GameRules.GetGameTime()-InfoScreen.Pseudo.AttackAnimationCheck.Time) > -0.05) then
+      if ((GameRules.GetGameTime()-InfoScreen.Pseudo.AttackAnimationCheck.Time) > 0) then
         for k, name in ipairs(InfoScreen.Pseudo.AttackAnimationCheck.Skills) do
           if InfoScreen.Pseudo.NoLuckCount[name] then
             InfoScreen.Pseudo.NoLuckCount[name] = InfoScreen.Pseudo.NoLuckCount[name] + 1;
@@ -1916,7 +1921,7 @@ function InfoScreen.OnPreUpdate()
 end;
 function InfoScreen.OnUpdate()
   if InfoScreen.Pseudo.isEnabled() and InfoScreen.User then
-    if InfoScreen.User.Update(Heroes.GetLocal()) then
+    if InfoScreen.User:Update(Heroes.GetLocal()) then
       --
       InfoScreen.Pseudo.Enabled = false;
       for k, v in pairs(InfoScreen.User.Abilities) do
@@ -1964,8 +1969,8 @@ function InfoScreen.OnUpdate()
 end;
 
 function InfoScreen.Renderer.DrawBar(x, y, width, height, percent, text, index)
-  if percent > 100 then
-    percent = 100;
+  if percent > 1 then
+    percent = 1
   end;
   Renderer.SetDrawColor(0, 0, 0, 125);
   Renderer.DrawFilledRect(x + InfoScreen.Renderer.XOffset,y + InfoScreen.Renderer.YTopOffset - height*index, width, height);
