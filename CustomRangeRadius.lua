@@ -92,6 +92,7 @@ function CustomRangeRadius.AddRadius(nameOrIndex)
 	end;
 end;
 function CustomRangeRadius.RemoveRadius(nameOrIndex)
+	Log.Write("Remove "..nameOrIndex)
 	Menu.RemoveOption(CustomRangeRadius.Menu.Radius[nameOrIndex]);
 	CustomRangeRadius.Menu.Radius[nameOrIndex] = nil;
 	CustomRangeRadius.ClearRangeParticle(nameOrIndex);
@@ -134,7 +135,7 @@ function CustomRangeRadius.OnMenuOptionChange(option, oldValue, newValue)
 				CustomRangeRadius.AddRadius(i);
 			end;
 		elseif newValue < #CustomRangeRadius.Menu.Radius then
-			for i=(#CustomRangeRadius.Menu.Radius-newValue), #CustomRangeRadius.Menu.Radius do
+			for i=(newValue+1), #CustomRangeRadius.Menu.Radius do
 				if CustomRangeRadius.Menu.Radius[i] then
 					CustomRangeRadius.RemoveRadius(i);
 				end;
