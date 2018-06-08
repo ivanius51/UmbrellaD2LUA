@@ -99,6 +99,8 @@ end;
 function CustomRangeRadius.InitRadiusMenu()
 	for i=#CustomRangeRadius.Menu.Radius, Menu.GetValue(CustomRangeRadius.Menu.Count) do
 		CustomRangeRadius.AddRadius(i);
+		Menu.LoadSettings();
+		CustomRangeRadius.SetRange(i,CustomRangeRadius.GetRadius(i));
 	end;
 end;
 function CustomRangeRadius.ClearRadiusMenu()
@@ -114,6 +116,7 @@ function CustomRangeRadius.Initialization()
 	end;
 	--CustomRangeRadius.ClearRadiusMenu();
 	--Log.Write(Menu.GetValue(CustomRangeRadius.Menu.Count));
+	Menu.LoadSettings();
 	CustomRangeRadius.InitRadiusMenu();
 end;
 function CustomRangeRadius.Finalization()
