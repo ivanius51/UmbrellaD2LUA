@@ -2037,7 +2037,7 @@ function InfoScreen.BuyBackUlti.OnUpdate()
     
     local heroes = Heroes.GetAll();
     for k, heroent in ipairs(heroes) do
-      if not Entity.IsSameTeam(InfoScreen.User.Entity, heroent) then
+      if not Entity.IsSameTeam(InfoScreen.User.Entity, heroent) and not NPC.IsIllusion(heroent) then
         if not InfoScreen.BuyBackUlti.EnemyData[heroent] then
           InfoScreen.BuyBackUlti.EnemyData[heroent] = {};
         end;
@@ -2052,7 +2052,7 @@ end;
 
 function InfoScreen.OnUpdate()
   InfoScreen.Pseudo.OnUpdate();
-  InfoScreen.BuyBackUlti.OnUpdate();
+	--InfoScreen.BuyBackUlti.OnDraw()
 end;
 
 function InfoScreen.BuyBackUlti.OnDraw()
@@ -2080,7 +2080,7 @@ function InfoScreen.ManaBar.OnDraw()
   if InfoScreen.User and Menu.IsEnabled(InfoScreen.Menu.ManaBar) then
     local heroes = Heroes.GetAll();
     for k, heroent in ipairs(heroes) do
-      if not Entity.IsSameTeam(InfoScreen.User.Entity, heroent) then
+      if not Entity.IsSameTeam(InfoScreen.User.Entity, heroent) and not NPC.IsIllusion(heroent)  then
         local origin = Entity.GetAbsOrigin(heroent); 
         local HBO = NPC.GetHealthBarOffset(heroent); 
         origin:SetZ(origin:GetZ() + HBO);
@@ -2096,7 +2096,6 @@ end;
 function InfoScreen.OnDraw()
   InfoScreen.Pseudo.OnDraw();
   InfoScreen.ManaBar.OnDraw();
-  InfoScreen.BuyBackUlti.OnDraw();
 end;
 
 function InfoScreen.OnGameStart()
