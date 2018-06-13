@@ -25,15 +25,17 @@ SkillAlert.Menu = {};
 SkillAlert.User = {};
 SkillAlert.Particles = {};
 SkillAlert.Menu.ParticleEffects = {"particles/neutral_fx/roshan_spawn.vpcf", "particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "particles/ui_mouseactions/range_display.vpcf"};
+SkillAlert.Menu.TrueSightTypes = {"Disabled", "Self Hero", "All Allies", "All include enemies"};
 SkillAlert.SkillModifiers = {
 	["default"] = {"particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "position", 175},
 	["modifier_invoker_sun_strike"] = {"particles/units/heroes/hero_invoker/invoker_sun_strike.vpcf", "position", 175},
 	["modifier_kunkka_torrent_thinker"] = {"particles/units/heroes/hero_kunkka/kunkka_spell_torrent_splash.vpcf", "position", 250},
 	["modifier_lina_light_strike_array"] = {"particles/units/heroes/hero_lina/lina_spell_light_strike_array.vpcf", "position", 225},
 	["modifier_leshrac_split_earth_thinker"] = {"particles/units/heroes/hero_leshrac/leshrac_split_earth.vpcf", "position", 225},
-	["modifier_truesight"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},
-	["modifier_invisible"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},
-	["modifier_projectile_vision_on_minimap"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},
+	["modifier_truesight"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 75},--"particles/ui_mouseactions/range_display_magenta.vpcf"
+	["modifier_invisible"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 50},--"particles/ui_mouseactions/range_display_blue.vpcf"
+	["modifier_projectile_vision_on_minimap"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},--range_display_aqua
+	["modifier_projectile_vision"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},--range_display_aqua
 	["modifier_spirit_breaker_charge_of_darkness_vision"] = {"particles/units/heroes/hero_spirit_breaker/spirit_breaker_charge_target_mark.vpcf", "overhead"},
 	["modifier_tusk_snowball_target"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"},
 	["modifier_tusk_snowball_visible"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"}
@@ -43,6 +45,7 @@ SkillAlert.Menu.Path = {"Utility", "Skill Alert"};
 SkillAlert.Menu.Enabled = Menu.AddOptionBool(SkillAlert.Menu.Path, "Enabled", false);
 SkillAlert.Menu.SkillEffects = Menu.AddOptionBool(SkillAlert.Menu.Path, "Default Skill Effects", false);
 SkillAlert.Menu.ParticleEffect = Menu.AddOptionCombo(SkillAlert.Menu.Path, "Custom Effect", SkillAlert.Menu.ParticleEffects ,0);
+SkillAlert.Menu.TrueSight = Menu.AddOptionCombo(SkillAlert.Menu.Path, "True Sight", SkillAlert.Menu.TrueSightTypes ,0);
 
 SkillAlert.User.Hero = nil;
 SkillAlert.Particles = {};
@@ -59,6 +62,12 @@ function SkillAlert.getSkillParticleEffect()
 	local result = tonumber(Menu.GetValue(SkillAlert.Menu.ParticleEffect))+1;
 	return SkillAlert.Menu.ParticleEffects[result];
 end;
+
+function SkillAlert.getTruSight()
+	local result = Menu.GetValue(SkillAlert.Menu.TrueSight)+1;
+	return result;
+end;
+
 
 function SkillAlert.Initialization()
 	SkillAlert.User.Hero = nil;
@@ -78,9 +87,9 @@ function SkillAlert.CreateRangeParticle(index, ent, name)
 	if (ent == nil) then
 		return false;
 	end;
-	if (SkillAlert.Particles[tonumber(index)] == nil) and Entity.IsEntity(ent) then
-		SkillAlert.Particles[tonumber(index)] = {};
-		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, ent);
+	if (SkillAlert.Particles[index] == nil) and Entity.IsEntity(ent) then
+		SkillAlert.Particles[index] = {};
+		SkillAlert.Particles[index].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, ent);
 		return true;
 	end;
 	return false;
@@ -90,9 +99,9 @@ function SkillAlert.CreateOverheadParticle(index, ent, name)
 	if (ent == nil) then
 		return false;
 	end;
-	if (SkillAlert.Particles[tonumber(index)] == nil) and Entity.IsEntity(ent) then
-		SkillAlert.Particles[tonumber(index)] = {};
-		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_OVERHEAD_FOLLOW, ent);
+	if (SkillAlert.Particles[index] == nil) and Entity.IsEntity(ent) then
+		SkillAlert.Particles[index] = {};
+		SkillAlert.Particles[index].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_OVERHEAD_FOLLOW, ent);
 		return true;
 	end;
 	return false;
@@ -102,21 +111,21 @@ function SkillAlert.CreatePositionParticle(index, position, name)
 	if (ent == nil) then
 		return false;
 	end;
-	if (SkillAlert.Particles[tonumber(index)] == nil) then
-		SkillAlert.Particles[tonumber(index)] = {};
-		SkillAlert.Particles[tonumber(index)].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN, 0);
-		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 0, position);
-		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 1, Vector(300, 1, 1));
-		Particle.SetControlPoint(SkillAlert.Particles[tonumber(index)].ID, 6, Vector(1, 0, 0));
+	if (SkillAlert.Particles[index] == nil) then
+		SkillAlert.Particles[index] = {};
+		SkillAlert.Particles[index].ID = Particle.Create(name, Enum.ParticleAttachment.PATTACH_ABSORIGIN, 0);
+		Particle.SetControlPoint(SkillAlert.Particles[index].ID, 0, position);
+		Particle.SetControlPoint(SkillAlert.Particles[index].ID, 1, Vector(300, 1, 1));
+		Particle.SetControlPoint(SkillAlert.Particles[index].ID, 6, Vector(1, 0, 0));
 		return true;
 	end;
 	return false;
 end;
 
 function SkillAlert.ClearParticle(index)
-	if (SkillAlert.Particles[tonumber(index)] ~= nil) and (SkillAlert.Particles[tonumber(index)].ID ~= nil) then
-		Particle.Destroy(SkillAlert.Particles[tonumber(index)].ID);
-		SkillAlert.Particles[tonumber(index)] = nil;
+	if (SkillAlert.Particles[index] ~= nil) and (SkillAlert.Particles[index].ID ~= nil) then
+		Particle.Destroy(SkillAlert.Particles[index].ID);
+		SkillAlert.Particles[index] = nil;
 	end;
 end;
 
@@ -178,27 +187,32 @@ function SkillAlert.OnModifierCreate(ent, mod)
 		end;
 		Log.Write(Modifier.GetName(mod)); 
 		--]]
+		if ent and mod and (Modifier.GetName(mod)=="modifier_truesight") then
+			local TrueSightType = SkillAlert.getTruSight();
+			if (TrueSightType <= 1) or ((TrueSightType == 2) and ent~=SkillAlert.User.Hero) or ((TrueSightType == 3) and not Entity.IsSameTeam(ent, SkillAlert.User.Hero)) then
+				return;
+			end;
+		end;
 		if SkillAlert.SkillModifiers[Modifier.GetName(mod)] ~= nil then
 			if SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "position" then
 				if SkillAlert.isDefaultSkillEffects() then
-					SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
+					SkillAlert.CreateRangeParticle(ent ~ mod, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
 				else
-					SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.getSkillParticleEffect());
+					SkillAlert.CreateRangeParticle(ent ~ mod, ent, SkillAlert.getSkillParticleEffect());
 				end;
-				if (SkillAlert.Particles[ent] ~= nil) then
-					Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
+				if (SkillAlert.Particles[ent ~ mod] ~= nil) then
+					Particle.SetControlPoint(SkillAlert.Particles[ent ~ mod].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
 				end;
 			elseif SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "overhead" then
-				SkillAlert.CreateOverheadParticle(ent,ent,SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
+				SkillAlert.CreateOverheadParticle(ent ~ mod,ent,SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
 			elseif SkillAlert.SkillModifiers[Modifier.GetName(mod)][2] == "range" then
-				SkillAlert.CreateRangeParticle(ent, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1])
-				if (SkillAlert.Particles[ent] ~= nil) and (SkillAlert.Particles[ent].ID ~= nil) then
-					Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
+				SkillAlert.CreateRangeParticle(ent ~ mod, ent, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1])
+				if (SkillAlert.Particles[ent ~ mod] ~= nil) and (SkillAlert.Particles[ent ~ mod].ID ~= nil) then
+					Particle.SetControlPoint(SkillAlert.Particles[ent ~ mod].ID, 1, Vector(SkillAlert.SkillModifiers[Modifier.GetName(mod)][3], 0, 0));
 				end;
 			end;
-
-			if (SkillAlert.Particles[ent] ~= nil) and (SkillAlert.Particles[ent].ID ~= nil) then
-				Particle.SetControlPoint(SkillAlert.Particles[ent].ID, 6, Vector(1, 0, 0));
+			if (SkillAlert.Particles[ent ~ mod] ~= nil) and (SkillAlert.Particles[ent ~ mod].ID ~= nil) then
+				Particle.SetControlPoint(SkillAlert.Particles[ent ~ mod].ID, 6, Vector(1, 0, 0));
 			end;
 		else
 			-- not listed modifier
@@ -209,13 +223,14 @@ end;
 function SkillAlert.OnModifierDestroy(ent, mod)
 	if SkillAlert.isEnabled() then
 		if SkillAlert.SkillModifiers[Modifier.GetName(mod)] ~= nil then
-			if (SkillAlert.Particles[ent] ~= nil) then
-				SkillAlert.ClearParticle(ent);
+			if (SkillAlert.Particles[ent ~ mod] ~= nil) then
+				SkillAlert.ClearParticle(ent ~ mod);
 			end;
 		else
 			-- not listed modifier
-			if (SkillAlert.Particles[ent] ~= nil) then
-				SkillAlert.ClearParticle(ent);
+			if (SkillAlert.Particles[ent ~ mod] ~= nil) then
+				Log.Write(Modifier.GetName(mod));
+				SkillAlert.ClearParticle(ent ~ mod);
 			end;
 		end;
 	end;
