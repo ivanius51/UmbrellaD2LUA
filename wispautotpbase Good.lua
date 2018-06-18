@@ -56,7 +56,7 @@ function wisp.OnUpdate()
 			end;
 		else
 			if modWispRelocate and not casted then
-				if (dieTime - GameTime <= 2.96) and (dieTime- GameTime > 2.8) then	
+				if (dieTime - GameTime <= 2.96 + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING)) and (dieTime- GameTime > 2.8) then	
 					local TPitem = NPC.GetItem(myHero, "item_tpscroll", true)
 					if not TPitem then
 						TPitem = NPC.GetItem(myHero, "item_travel_boots", true)
