@@ -167,6 +167,7 @@ LastHitCreep.CreepsPredictedDieTime = {};
 LastHitCreep.UpdateTime = 0.10;
 LastHitCreep.User.UpdateTime = 0.10;
 LastHitCreep.DPSMult = (1 / LastHitCreep.UpdateTime);
+local Time = 0;
 
 --menu options
 function LastHitCreep.isEnabled()
@@ -417,13 +418,14 @@ function LastHitCreep.User.Read()
 end;
 
 function LastHitCreep.Initialization()
-	math.randomseed(os.time());
+	Time = os.clock();
+	math.randomseed(Time);
 	LastHitCreep.User.Read();
 	LastHitCreep.User.LastTarget = nil;
-	LastHitCreep.User.LastAttackTime = os.clock();
-	LastHitCreep.User.LastUpdateTime = os.clock();
-	LastHitCreep.LastUpdateTime = os.clock();
-	LastHitCreep.User.LastMoveTime = os.clock();
+	LastHitCreep.User.LastAttackTime = Time;
+	LastHitCreep.User.LastUpdateTime = Time;
+	LastHitCreep.LastUpdateTime = Time;
+	LastHitCreep.User.LastMoveTime = Time;
 	for k in pairs(LastHitCreep.Particles) do
 		LastHitCreep.Particles[k] = nil;
 	end;
@@ -445,18 +447,20 @@ function LastHitCreep.WriteCreepHPAround(list, ent, range, team)
 		if npc and Entity.IsEntity(npc) and not NPC.IsWaitingToSpawn(npc) and Entity.IsAlive(npc) and NPC.IsLaneCreep(npc) then
 			--todo incapsulate it
 			if list[npc] == nil then
-				list[npc] = {};
-				list[npc].HP = math.floor(Entity.GetHealth(npc) + NPC.GetHealthRegen(npc));
-				list[npc].OldHP = list[npc].HP;
-				list[npc].DPS = -1; 
-				list[npc].Damage = {}; 
+				local temp = {};
+				temp.HP = math.floor(Entity.GetHealth(npc) + NPC.GetHealthRegen(npc));
+				temp.OldHP = temp.HP;
+				temp.DPS = -1; 
+				temp.Damage = {}; 
+				list[npc] = temp;
 			else
-				list[npc].OldHP = list[npc].HP;
-				list[npc].HP = math.floor(Entity.GetHealth(npc) + NPC.GetHealthRegen(npc));
-				local curDPS = (list[npc].OldHP-list[npc].HP);
-				table.insert(list[npc].Damage, curDPS);
-				if (#list[npc].Damage > (LastHitCreep.DPSMult * 2)) then
-					table.remove(list[npc].Damage,1);
+				local temp = list[npc];
+				temp.OldHP = temp.HP;
+				temp.HP = math.floor(Entity.GetHealth(npc) + NPC.GetHealthRegen(npc));
+				local curDPS = (temp.OldHP-temp.HP);
+				table.insert(temp.Damage, curDPS);
+				if (#temp.Damage > (LastHitCreep.DPSMult * 2)) then
+					table.remove(temp.Damage,1);
 				end;
 			end;
 		end;
@@ -473,40 +477,42 @@ function LastHitCreep.PredictCreepHPAround(list, ent, range, team)
 		if npc and Entity.IsEntity(npc) and not NPC.IsWaitingToSpawn(npc) and Entity.IsAlive(npc) and NPC.IsLaneCreep(npc) then
 			local HP =  math.floor(Entity.GetHealth(npc) + NPC.GetHealthRegen(npc));
 			if (list[npc] == nil) then
-				list[npc] = {};
-				list[npc].HP = HP;
-				list[npc].OldHP = HP;
-				list[npc].DieTime = 0; 
-				list[npc].DPS = nil;
+				temp = {};
+				temp.HP = HP;
+				temp.OldHP = HP;
+				temp.DieTime = 0; 
+				temp.DPS = nil;
+				list[npc] = temp;
 			else
-				local OldHP = list[npc].HP;
+				local temp = list[npc];
+				local OldHP = temp.HP;
 				local DamageTaken = (OldHP-HP);
 				if (DamageTaken>0) then
-					list[npc].OldHP = OldHP;
-					list[npc].HP = HP;
+					temp.OldHP = OldHP;
+					temp.HP = HP;
 					if LastHitCreep.CreepsDPS[npc] and LastHitCreep.CreepsDPS[npc].Damage and (#LastHitCreep.CreepsDPS[npc].Damage >= LastHitCreep.DPSMult) then
 						local HeroDamage = math.floor(NPC.GetDamageMultiplierVersus(LastHitCreep.User.Hero, npc) * LastHitCreep.User.DamageToCreep * NPC.GetArmorDamageMultiplier(npc) * 0.975);
 						local DPS = math.floor((table.sum(LastHitCreep.CreepsDPS[npc].Damage) - DamageTaken) * LastHitCreep.DPSMult / #LastHitCreep.CreepsDPS[npc].Damage);
 						local AttackTime = LastHitCreep.CalcAttackTimeTo(npc);
-						list[npc].DPS = DPS;
-						list[npc].HeroDamage = HeroDamage;
-						list[npc].AttackTime = AttackTime;
+						temp.DPS = DPS;
+						temp.HeroDamage = HeroDamage;
+						temp.AttackTime = AttackTime;
 						--Log.Write("HP="..HP.." DamageTaken="..DamageTaken.." DPS="..DPS.." "..table.tostring(LastHitCreep.CreepsDPS[npc].Damage));
-						if (list[npc].DieTime == 0) then
+						if (temp.DieTime == 0) then
 							if LastHitCreep.GetPrediction() == 1 then-- Creep Die
-								--list[npc].AttackTime = 0.45;--creep Attack Time
+								--temp.AttackTime = 0.45;--creep Attack Time
 								if ((HP > DPS) and (HP < (DPS + DamageTaken))) then
-									list[npc].DieTime = GameRules.GetGameTime() + 1 + AttackTime;
+									temp.DieTime = GameRules.GetGameTime() + 1 + AttackTime;
 								elseif (HP < (DPS * 1.5)) then
-									list[npc].DieTime = GameRules.GetGameTime() + (math.abs(HP-DPS) / DPS)  + AttackTime;
+									temp.DieTime = GameRules.GetGameTime() + (math.abs(HP-DPS) / DPS)  + AttackTime;
 								end;
 							elseif LastHitCreep.GetPrediction() == 2 then-- Player Can HittKill
 								if (HP <= HeroDamage) then
-									list[npc].DieTime = GameRules.GetGameTime() + AttackTime + 0.1;
+									temp.DieTime = GameRules.GetGameTime() + AttackTime + 0.1;
 								elseif ((HP > (DPS - HeroDamage * 0.25)) and (HP < (DPS + HeroDamage))) then
-									list[npc].DieTime = GameRules.GetGameTime() + 1 + AttackTime;
+									temp.DieTime = GameRules.GetGameTime() + 1 + AttackTime;
 								elseif (DPS < HeroDamage) then -- think about it
-									--list[npc].DieTime = GameRules.GetGameTime() + LastHitCreep.User.AttackTime * math.ceil(HP / HeroDamage);
+									--temp.DieTime = GameRules.GetGameTime() + LastHitCreep.User.AttackTime * math.ceil(HP / HeroDamage);
 								end;
 							end;
 						end;
@@ -534,7 +540,8 @@ function LastHitCreep.FindBestTarget()
 	
 	if (LastHitCreep.User.IsRanged) then
 		if LastHitCreep.isPrediction() then
-			for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, function(t, a, b) return t[b].DieTime > t[a].DieTime end) do
+			local DieTimeMax =  function(t, a, b) return t[b].DieTime > t[a].DieTime end;
+			for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, DieTimeMax) do
 				if npc and predicted.DPS and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) and  --NPC.IsLaneCreep(npc) and
 					( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) ) and
 					((predicted.DieTime - GameRules.GetGameTime()) > 0)
@@ -547,7 +554,8 @@ function LastHitCreep.FindBestTarget()
 				end;
 			end;
 		end;
-		for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, function(t, a, b) return t[b].HP > t[a].HP end) do
+		local HPMax =  function(t, a, b) return t[b].HP > t[a].HP end;
+		for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, HPMax) do
 			if npc and predicted.DPS and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) and  --NPC.IsLaneCreep(npc) and
 				( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) )
 			then
@@ -561,7 +569,8 @@ function LastHitCreep.FindBestTarget()
 		end;
 	else -- melee
 		if LastHitCreep.isPrediction() then
-			for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, function(t, a, b) return t[b].DieTime > t[a].DieTime end) do
+			local DieTimeMax =  function(t, a, b) return t[b].DieTime > t[a].DieTime end;
+			for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, DieTimeMax) do
 				if npc and predicted.DPS and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) and  --NPC.IsLaneCreep(npc) and
 					( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) ) and
 					((predicted.DieTime - GameRules.GetGameTime()) > 0)
@@ -574,7 +583,8 @@ function LastHitCreep.FindBestTarget()
 				end;
 			end;
 		end;
-		for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, function(t, a, b) return t[b].HP > t[a].HP end) do		
+		local HPMax =  function(t, a, b) return t[b].HP > t[a].HP end;
+		for npc, predicted in spairs(LastHitCreep.CreepsPredictedDieTime, HPMax) do		
 			if npc and predicted.DPS and Entity.IsEntity(npc) and Entity.IsAlive(npc) and Entity.IsNPC(npc) and
 				( (not Entity.IsSameTeam(npc, LastHitCreep.User.Hero)and LastHitCreep.isKillEnemys()) or (Entity.IsSameTeam(npc, LastHitCreep.User.Hero) and LastHitCreep.isDenyFriendlys()) )
 			then	
@@ -609,46 +619,50 @@ function LastHitCreep.OnUpdate()
 		return;
 	end;
 
-	if ((os.clock() - LastHitCreep.User.LastUpdateTime) > LastHitCreep.User.UpdateTime) then
+	Time = os.clock();
+
+	if ((Time - LastHitCreep.User.LastUpdateTime) > LastHitCreep.User.UpdateTime) then
 		--update user data
 		if not LastHitCreep.User.Read() then
 			return;
 		end;
-		LastHitCreep.User.LastUpdateTime = os.clock();
+		LastHitCreep.User.LastUpdateTime = Time;
 	end;
 
 	--
 	LastHitCreep.ClearDiedInList();
 	LastHitCreep.PredictCreepHPAround(LastHitCreep.CreepsPredictedDieTime, LastHitCreep.User.Hero, math.min(1000,LastHitCreep.User.AttackRange + 500), Enum.TeamType.TEAM_BOTH);
 
-	if ((os.clock() - LastHitCreep.LastUpdateTime) > LastHitCreep.UpdateTime) then
+	if ((Time - LastHitCreep.LastUpdateTime) > LastHitCreep.UpdateTime) then
 		LastHitCreep.WriteCreepHPAround(LastHitCreep.CreepsDPS, LastHitCreep.User.Hero, math.min(1000,LastHitCreep.User.AttackRange + 500), Enum.TeamType.TEAM_BOTH);
-		LastHitCreep.LastUpdateTime = os.clock();
+		LastHitCreep.LastUpdateTime = Time;
 	end;
 
-	if ((os.clock() - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) and LastHitCreep.CanCastSpells(LastHitCreep.User.Hero) and not LastHitCreep.PreventPlayer(LastHitCreep.User.Hero) then
+	if ((Time - LastHitCreep.User.LastAttackTime) > LastHitCreep.User.AttackTime) and LastHitCreep.CanCastSpells(LastHitCreep.User.Hero) and not LastHitCreep.PreventPlayer(LastHitCreep.User.Hero) then
 		local BestTarget = LastHitCreep.FindBestTarget();
-		if BestTarget and BestTarget[1] and (not LastHitCreep.isEducation() or LastHitCreep.isHitKeyDown()) then
+		if BestTarget and BestTarget[1] and LastHitCreep.isHitKeyDown() then--(not LastHitCreep.isEducation() or LastHitCreep.isHitKeyDown()) then
 			Player.AttackTarget(Players.GetLocal(), LastHitCreep.User.Hero, BestTarget[1]);
-			LastHitCreep.User.LastAttackTime = os.clock() + 0.05 + BestTarget[2];
+			LastHitCreep.User.LastAttackTime = Time + 0.05 + BestTarget[2];
 			LastHitCreep.User.LastMoveTime = LastHitCreep.User.LastAttackTime + 0.5;
 		else
 			--Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
 		end;
 		LastHitCreep.User.LastTarget = BestTarget[1];
+	else
+		LastHitCreep.User.LastTarget = nil;
 	end;
 	
 	--Attack Move Block
 	if LastHitCreep.isAttackMove() then
 		if NPC.IsTurning(LastHitCreep.User.Hero) or NPC.IsRunning(LastHitCreep.User.Hero) then
-			LastHitCreep.User.LastMoveTime = os.clock() + 2;
+			LastHitCreep.User.LastMoveTime = Time + 2;
 		else
-			if ((os.clock() - LastHitCreep.User.LastAttackTime) > (LastHitCreep.User.AttackPoint + 0.05)) and ((os.clock() - LastHitCreep.User.LastMoveTime) > 0.45)  then
+			if ((Time - LastHitCreep.User.LastAttackTime) > (LastHitCreep.User.AttackPoint + 0.05)) and ((Time - LastHitCreep.User.LastMoveTime) > 0.45)  then
 				--Log.Write("Attack Move");
 				local position = Entity.GetAbsOrigin(LastHitCreep.User.Hero);
 				movevec = position:__add(Vector(math.random(-70,70),math.random(-70,70),0));--magic number for range move
 				NPC.MoveTo(LastHitCreep.User.Hero, movevec, false);
-				LastHitCreep.User.LastMoveTime = os.clock() + 3 + (VectorDistance(position,movevec)/LastHitCreep.User.MoveSpeed);--magic numbers for time delay
+				LastHitCreep.User.LastMoveTime = Time + 3 + (VectorDistance(position,movevec)/LastHitCreep.User.MoveSpeed);--magic numbers for time delay
 			end;
 		end;
 	end;
@@ -667,26 +681,13 @@ function LastHitCreep.OnUnitAnimation(animation)
 	if not animation or not LastHitCreep.isEnabled() then 
 		return;
 	end;
-	--[[
-	if (NPC.GetUnitName(animation.unit) == LastHitCreep.User.Name) then
-		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget) then
-			--Log.Write("LT HP Start="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
+	if (animation.unit == LastHitCreep.User.Hero) then
+		if (LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)) or ((Time - LastHitCreep.User.LastAttackTime)>0) then
+			if not LastHitCreep.isHitKeyDown() or LastHitCreep.isEducation() then
+				Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
+			end;
 		end;
-		if (not LastHitCreep.isEducation() or LastHitCreep.isHitKeyDown()) and 
-				(LastHitCreep.User.LastTarget and 
-				((Entity.GetHealth(LastHitCreep.User.LastTarget)>(LastHitCreep.User.TrueDamage*5)) or not Entity.IsAlive(LastHitCreep.User.LastTarget))) 
-		then-- or not(LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)) 
-			--Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
-		end;
-		
-		local increasedAS = NPC.GetIncreasedAttackSpeed(animation.unit);
-		local attackTime = LastHitCreep.User.AttackTime;
-		local attackPoint = LastHitCreep.User.AttackPoint;
-		local attackSpeed = attackPoint / (1 + (increasedAS/100));
-		local attackTime = GameRules.GetGameTime() + attackSpeed + (attackPoint * 0.75);
-		Log.Write("R_StartAttack="..GameRules.GetGameTime().." EndAttack="..attackTime);
 	end;
-	]]
 	--[[
 	--try find\test facing, but it not right
 	if animation.unit and Entity.IsNPC(animation.unit) and NPC.IsLaneCreep(animation.unit) and (Entity.IsSameTeam(LastHitCreep.User.Hero, animation.unit)) and (animation.type == 1) then
@@ -708,17 +709,12 @@ function LastHitCreep.OnUnitAnimationEnd(animation)
 	if not animation or not LastHitCreep.isEnabled() then 
 		return;
 	end;
-	--[[
-	if animation.unit and (animation.unit == LastHitCreep.User.Hero) then
-		if LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)and Entity.IsAlive(LastHitCreep.User.LastTarget) then
-			Log.Write("LT HP END="..math.floor(Entity.GetHealth(LastHitCreep.User.LastTarget) + NPC.GetHealthRegen(LastHitCreep.User.LastTarget)));
-			if (Entity.GetHealth(LastHitCreep.User.LastTarget)>0) then
-				Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
-			end;
+	if (animation.unit == LastHitCreep.User.Hero) then	
+		if (LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)) or ((Time - LastHitCreep.User.LastAttackTime)>0) then
+			--Log.Write((Time - LastHitCreep.User.LastAttackTime));
+			Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
 		end;
-		--Log.Write("R_EndAttack="..GameRules.GetGameTime());
 	end;
-	]]
 end;
 
 function LastHitCreep.OnGameStart()
@@ -781,11 +777,10 @@ end
 function LastHitCreep.OnDraw()
 
 	if not LastHitCreep.isEnabled() then return end;
-	local myHero = Heroes.GetLocal()
-  if not myHero then return end
-	if not Entity.IsAlive(myHero) then return end
+  if not LastHitCreep.User.Hero then return end
+	if not Entity.IsAlive(LastHitCreep.User.Hero) then return end
 	
-	LastHitCreep.PredictDrawing(myHero)
+	LastHitCreep.PredictDrawing(LastHitCreep.User.Hero)
 end
 
 LastHitCreep.Initialization();
