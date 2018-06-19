@@ -50,7 +50,7 @@ function CustomRangeRadius.CreateRangeParticle(index)
 	end;
 	if (CustomRangeRadius.Particles.Radius[index] == nil) then
 		CustomRangeRadius.Particles.Radius[index] = {};
-		CustomRangeRadius.Particles.Radius[index].ID = Particle.Create("particles/ui_mouseactions/drag_selected_ring.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero);
+		CustomRangeRadius.Particles.Radius[index].ID = Particle.Create("particles/ui_mouseactions/range_display.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero);
 		CustomRangeRadius.Particles.Radius[index].Value = 0;
 		return true;
 	end;
@@ -114,6 +114,11 @@ function CustomRangeRadius.ClearRadiusMenu()
 	for k in pairs(CustomRangeRadius.Menu.Radius) do
 		CustomRangeRadius.RemoveRadius(k);
 	end;
+	for k in pairs(CustomRangeRadius.Menu.Skills) do
+		Menu.RemoveOption(k);
+		CustomRangeRadius.Menu.Radius[k] = nil;
+		CustomRangeRadius.ClearRangeParticle(k);
+	end;
 end;
 
 function CustomRangeRadius.Initialization()
@@ -130,10 +135,12 @@ function CustomRangeRadius.Initialization()
 			local abil = NPC.GetAbilityByIndex(CustomRangeRadius.User.Hero, i);
 			if abil and Entity.IsAbility(abil) and not Ability.IsHidden(abil) and not Ability.IsAttributes(abil) then
 				--Log.Write();
-				local NewOption = Menu.AddOptionBool(CustomRangeRadius.Menu.SkillsPath, Ability.GetName(abil):gsub(CustomRangeRadius.User.HeroName.."_", '', 1):gsub("_", " "), false);
-				CustomRangeRadius.Skills[NewOption] = {};
-				CustomRangeRadius.Skills[NewOption].Ability = abil;
-				CustomRangeRadius.Skills[NewOption].Range = Ability.GetCastRange(abil);
+				local name = Ability.GetName(abil):gsub(CustomRangeRadius.User.HeroName.."_", '', 1):gsub("_", " ");
+				local NewOption = Menu.AddOptionBool(CustomRangeRadius.Menu.SkillsPath, name, false);
+				CustomRangeRadius.Menu.Skills[NewOption] = {};
+				CustomRangeRadius.Menu.Skills[NewOption].ShortName = name;
+				CustomRangeRadius.Menu.Skills[NewOption].Name = Ability.GetName(abil);
+				CustomRangeRadius.Menu.Skills[NewOption].Ability = abil;
 			end;
 		end;
 		CustomRangeRadius.Inited = true;
@@ -181,11 +188,17 @@ function CustomRangeRadius.OnMenuOptionChange(option, oldValue, newValue)
 		end;
 		--]]
 	else--edit radius
-		if CustomRangeRadius.Skills[option] then
+		if CustomRangeRadius.Menu.Skills[option] then
 			if newValue then
-				Log.Write(CustomRangeRadius.Skills[option].Range);
-				if CustomRangeRadius.Skills[option].Range>0 then
-					CustomRangeRadius.SetRange(option,CustomRangeRadius.Skills[option].Range);
+				local abil = NPC.GetAbility(CustomRangeRadius.User.Hero ,CustomRangeRadius.Menu.Skills[option].Name);
+				if abil then
+					--Log.Write(abil);
+					--Log.Write(CustomRangeRadius.Menu.Skills[option].Ability);
+					local range = Ability.GetCastRange(CustomRangeRadius.Menu.Skills[option].Ability);
+					--Log.Write(range);
+					if range>0 then
+						CustomRangeRadius.SetRange(option,range);
+					end;
 				end;
 			else
 				CustomRangeRadius.ClearRangeParticle(option);
