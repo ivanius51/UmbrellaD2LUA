@@ -31,11 +31,15 @@ local CustomRangeRadius = {};
 CustomRangeRadius.Menu = {};
 CustomRangeRadius.User = {};
 CustomRangeRadius.Particles = {};
+CustomRangeRadius.Skills = {};
+CustomRangeRadius.Inited = false;
 
 CustomRangeRadius.Menu.Path = {"Info Screen", "Custom Range Radius"};
+CustomRangeRadius.Menu.SkillsPath = {"Info Screen", "Custom Range Radius", "Skills"};
 CustomRangeRadius.Menu.Enabled = Menu.AddOptionBool(CustomRangeRadius.Menu.Path, "Enabled", false);
 CustomRangeRadius.Menu.Count = Menu.AddOptionSlider(CustomRangeRadius.Menu.Path, "Sliders Count", 1, 10, 1);
 CustomRangeRadius.Menu.Radius = {};
+CustomRangeRadius.Menu.Skills = {};
 
 CustomRangeRadius.User.Hero = nil;
 CustomRangeRadius.Particles.Radius = {};
@@ -46,7 +50,7 @@ function CustomRangeRadius.CreateRangeParticle(index)
 	end;
 	if (CustomRangeRadius.Particles.Radius[index] == nil) then
 		CustomRangeRadius.Particles.Radius[index] = {};
-		CustomRangeRadius.Particles.Radius[index].ID = Particle.Create("particles/ui_mouseactions/range_display.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero);
+		CustomRangeRadius.Particles.Radius[index].ID = Particle.Create("particles/ui_mouseactions/drag_selected_ring.vpcf", Enum.ParticleAttachment.PATTACH_ABSORIGIN_FOLLOW, CustomRangeRadius.User.Hero);
 		CustomRangeRadius.Particles.Radius[index].Value = 0;
 		return true;
 	end;
@@ -92,12 +96,14 @@ function CustomRangeRadius.AddRadius(nameOrIndex)
 	end;
 end;
 function CustomRangeRadius.RemoveRadius(nameOrIndex)
-	Log.Write("Remove "..nameOrIndex)
+	--Log.Write("Remove "..nameOrIndex)
 	Menu.RemoveOption(CustomRangeRadius.Menu.Radius[nameOrIndex]);
 	CustomRangeRadius.Menu.Radius[nameOrIndex] = nil;
 	CustomRangeRadius.ClearRangeParticle(nameOrIndex);
 end;
 function CustomRangeRadius.InitRadiusMenu()
+	--Log.Write(#CustomRangeRadius.Menu.Radius);
+	--Log.Write(Menu.GetValue(CustomRangeRadius.Menu.Count));
 	for i=#CustomRangeRadius.Menu.Radius, Menu.GetValue(CustomRangeRadius.Menu.Count) do
 		CustomRangeRadius.AddRadius(i);
 		Menu.LoadSettings();
@@ -111,21 +117,45 @@ function CustomRangeRadius.ClearRadiusMenu()
 end;
 
 function CustomRangeRadius.Initialization()
-	CustomRangeRadius.User.Hero = Heroes.GetLocal();
-	for k in pairs(CustomRangeRadius.Particles.Radius) do
-		CustomRangeRadius.ClearRangeParticle(k);
+	if not CustomRangeRadius.Inited and Engine.IsInGame() then
+		CustomRangeRadius.User.Hero = Heroes.GetLocal();
+		CustomRangeRadius.User.HeroName = NPC.GetUnitName(CustomRangeRadius.User.Hero):gsub('npc_dota_hero_', '', 1);
+		--for k in pairs(CustomRangeRadius.Particles.Radius) do
+		--	CustomRangeRadius.ClearRangeParticle(k);
+		--end;
+		Menu.LoadSettings();
+		CustomRangeRadius.InitRadiusMenu();
+		Menu.SetEnabled(CustomRangeRadius.Menu.Enabled, true);
+		for i=0, 24 do	
+			local abil = NPC.GetAbilityByIndex(CustomRangeRadius.User.Hero, i);
+			if abil and Entity.IsAbility(abil) and not Ability.IsHidden(abil) and not Ability.IsAttributes(abil) then
+				--Log.Write();
+				local NewOption = Menu.AddOptionBool(CustomRangeRadius.Menu.SkillsPath, Ability.GetName(abil):gsub(CustomRangeRadius.User.HeroName.."_", '', 1):gsub("_", " "), false);
+				CustomRangeRadius.Skills[NewOption] = {};
+				CustomRangeRadius.Skills[NewOption].Ability = abil;
+				CustomRangeRadius.Skills[NewOption].Range = Ability.GetCastRange(abil);
+			end;
+		end;
+		CustomRangeRadius.Inited = true;
 	end;
-	--CustomRangeRadius.ClearRadiusMenu();
-	--Log.Write(Menu.GetValue(CustomRangeRadius.Menu.Count));
-	Menu.LoadSettings();
-	CustomRangeRadius.InitRadiusMenu();
 end;
 function CustomRangeRadius.Finalization()
-	CustomRangeRadius.User.Hero = nil;
-	for k in pairs(CustomRangeRadius.Particles.Radius) do
-		CustomRangeRadius.ClearRangeParticle(k);
+	if CustomRangeRadius.Inited then
+		CustomRangeRadius.User.Hero = nil;
+		for k in pairs(CustomRangeRadius.Particles.Radius) do
+			CustomRangeRadius.ClearRangeParticle(k);
+		end;
+		CustomRangeRadius.ClearRadiusMenu();
+		CustomRangeRadius.Inited = false;
 	end;
-	CustomRangeRadius.ClearRadiusMenu();
+end;
+
+function CustomRangeRadius.OnUpdate()
+	if CustomRangeRadius.isEnabled() then
+		CustomRangeRadius.Initialization();
+	else
+		CustomRangeRadius.Finalization();
+	end;
 end;
 
 function CustomRangeRadius.OnMenuOptionChange(option, oldValue, newValue)
@@ -142,15 +172,29 @@ function CustomRangeRadius.OnMenuOptionChange(option, oldValue, newValue)
 			end;
 		end;
 	elseif (option == CustomRangeRadius.Menu.Enabled) then
+		--Log.Write(tostring(newValue));
+	--[[	
 		if (newValue == false) then
 			CustomRangeRadius.Finalization();
 		else
 			CustomRangeRadius.Initialization();
 		end;
-	else
-		local index = table.findValue(CustomRangeRadius.Menu.Radius, option);
-		if index then
-			CustomRangeRadius.SetRange(index, newValue);
+		--]]
+	else--edit radius
+		if CustomRangeRadius.Skills[option] then
+			if newValue then
+				Log.Write(CustomRangeRadius.Skills[option].Range);
+				if CustomRangeRadius.Skills[option].Range>0 then
+					CustomRangeRadius.SetRange(option,CustomRangeRadius.Skills[option].Range);
+				end;
+			else
+				CustomRangeRadius.ClearRangeParticle(option);
+			end;
+		else
+			local index = table.findValue(CustomRangeRadius.Menu.Radius, option);
+			if index then
+				CustomRangeRadius.SetRange(index, newValue);
+			end;
 		end;
 	end;
 end;
