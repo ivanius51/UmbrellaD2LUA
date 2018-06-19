@@ -154,6 +154,7 @@ LastHitCreep.Menu.Education = Menu.AddOptionBool(LastHitCreep.Menu.Path, "Educat
 LastHitCreep.Menu.AttackMove = Menu.AddOptionBool(LastHitCreep.Menu.Path, "Attack Move", false);
 LastHitCreep.Menu.Prediction = Menu.AddOptionCombo(LastHitCreep.Menu.Path, "Predict", {" Disabled", " Creeps Die", " Player Last Hit"}, 0);
 LastHitCreep.Menu.ShowPrediction = Menu.AddOptionCombo(LastHitCreep.Menu.Path, "Show Prediction", {" Disabled", " Enemy", " Allies", " Both"}, 0);
+LastHitCreep.Menu.PredictionPercent = Menu.AddOptionSlider(LastHitCreep.Menu.Path, "Influence Of Prediction", 0, 100, 50);
 LastHitCreep.Menu.LastHitKey = Menu.AddKeyOption(LastHitCreep.Menu.Path, "Last Hit Key", Enum.ButtonCode.KEY_P);
 LastHitCreep.Menu.Enemys = Menu.AddOptionBool(LastHitCreep.Menu.Path.CreepTypes, "Kill Enemys", false);
 LastHitCreep.Menu.Friendlys = Menu.AddOptionBool(LastHitCreep.Menu.Path.CreepTypes, "Deny Allies", false);
@@ -536,6 +537,8 @@ function LastHitCreep.FindBestTarget()
 	--predicted.AttackTime
 	--predicted.DPS
 	--predicted.HeroDamage
+	local PredictionPercent = Menu.GetValue(LastHitCreep.Menu.PredictionPercent) / 100;
+
 	LastHitCreep.ReCalcAttackPoint();
 	
 	if (LastHitCreep.User.IsRanged) then
@@ -561,7 +564,7 @@ function LastHitCreep.FindBestTarget()
 			then
 				local AttackTime = LastHitCreep.CalcAttackTimeTo(npc);
 				local HP = Entity.GetHealth(npc);
-				if (HP <= (predicted.HeroDamage + predicted.DPS * AttackTime)) then
+				if (HP <= (predicted.HeroDamage + (predicted.DPS * AttackTime * PredictionPercent))) then
 					--Log.Write("NP 1, HP="..HP.." DPS="..predicted.DPS.." AT="..AttackTime);
 					return {npc, AttackTime};
 				end;
@@ -590,7 +593,7 @@ function LastHitCreep.FindBestTarget()
 			then	
 				local AttackTime = LastHitCreep.CalcAttackTimeTo(npc);
 				local HP = Entity.GetHealth(npc);
-				if (HP <= (predicted.HeroDamage + predicted.DPS * AttackTime)) then
+				if (HP <= (predicted.HeroDamage + (predicted.DPS * AttackTime * PredictionPercent))) then
 					--Log.Write("NP 1, HP="..HP.." DPS="..predicted.DPS.." AT="..AttackTime);
 					return {npc, AttackTime};
 				end;
