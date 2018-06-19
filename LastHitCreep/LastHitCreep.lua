@@ -686,7 +686,7 @@ function LastHitCreep.OnUnitAnimation(animation)
 	end;
 	if (animation.unit == LastHitCreep.User.Hero) then
 		if (LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)) or ((Time - LastHitCreep.User.LastAttackTime)>0) then
-			if not LastHitCreep.isHitKeyDown() or LastHitCreep.isEducation() then
+			if not LastHitCreep.isHitKeyDown() and not LastHitCreep.isEducation() then
 				Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
 			end;
 		end;
@@ -712,7 +712,7 @@ function LastHitCreep.OnUnitAnimationEnd(animation)
 	if not animation or not LastHitCreep.isEnabled() then 
 		return;
 	end;
-	if (animation.unit == LastHitCreep.User.Hero) then	
+	if (animation.unit == LastHitCreep.User.Hero) and not LastHitCreep.isEducation() then	
 		if (LastHitCreep.User.LastTarget and Entity.IsEntity(LastHitCreep.User.LastTarget)) or ((Time - LastHitCreep.User.LastAttackTime)>0) then
 			--Log.Write((Time - LastHitCreep.User.LastAttackTime));
 			Player.HoldPosition(Players.GetLocal(), LastHitCreep.User.Hero, false);
