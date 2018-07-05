@@ -25,27 +25,27 @@ SkillAlert.Menu = {};
 SkillAlert.User = {};
 SkillAlert.Particles = {};
 SkillAlert.Menu.ParticleEffects = {"particles/neutral_fx/roshan_spawn.vpcf", "particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "particles/ui_mouseactions/range_display.vpcf"};
-SkillAlert.Menu.TrueSightTypes = {"Disabled", "Self Hero", "All Allies", "All include enemies"};
+SkillAlert.Menu.TrueSightTypes = {" Disabled", " Self Hero", " All Allies", " All include enemies"};
 SkillAlert.SkillModifiers = {
 	["default"] = {"particles/units/heroes/hero_gyrocopter/gyro_calldown_marker.vpcf", "position", 175},
 	["modifier_invoker_sun_strike"] = {"particles/units/heroes/hero_invoker/invoker_sun_strike.vpcf", "position", 175},
 	["modifier_kunkka_torrent_thinker"] = {"particles/units/heroes/hero_kunkka/kunkka_spell_torrent_splash.vpcf", "position", 250},
 	["modifier_lina_light_strike_array"] = {"particles/units/heroes/hero_lina/lina_spell_light_strike_array.vpcf", "position", 225},
 	["modifier_leshrac_split_earth_thinker"] = {"particles/units/heroes/hero_leshrac/leshrac_split_earth.vpcf", "position", 225},
-	["modifier_truesight"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 75},--"particles/ui_mouseactions/range_display_magenta.vpcf"
-	["modifier_invisible"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 50},--"particles/ui_mouseactions/range_display_blue.vpcf"
-	["modifier_projectile_vision_on_minimap"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},--range_display_aqua
-	["modifier_projectile_vision"] = {"particles/ui_mouseactions/range_display.vpcf", "range", 100},--range_display_aqua
+	["modifier_truesight"] = {"particles/econ/wards/f2p/f2p_ward/ward_true_sight.vpcf", "overhead",},--"particles/ui_mouseactions/range_display_magenta.vpcf"TrueSide = "particles/econ/wards/f2p/f2p_ward/ward_true_sight.vpcf"
+	--["modifier_invisible"] = {"particles/range_display_blue.vpcf", "range", 50},--"particles/ui_mouseactions/range_display_blue.vpcf"
+	["modifier_projectile_vision_on_minimap"] = {"particles/items_fx/aura_shivas.vpcf", "range", 100},--range_display_aqua
+	["modifier_projectile_vision"] = {"particles/items_fx/aura_shivas.vpcf", "range", 100},--range_display_aqua
 	["modifier_spirit_breaker_charge_of_darkness_vision"] = {"particles/units/heroes/hero_spirit_breaker/spirit_breaker_charge_target_mark.vpcf", "overhead"},
 	["modifier_tusk_snowball_target"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"},
 	["modifier_tusk_snowball_visible"] = {"particles/units/heroes/hero_tusk/tusk_snowball_target.vpcf", "overhead"}
 }
 
-SkillAlert.Menu.Path = {"Utility", "Skill Alert"};
+SkillAlert.Menu.Path = {"Awareness", "Hidden Spells"};
 SkillAlert.Menu.Enabled = Menu.AddOptionBool(SkillAlert.Menu.Path, "Enabled", false);
 SkillAlert.Menu.SkillEffects = Menu.AddOptionBool(SkillAlert.Menu.Path, "Default Skill Effects", false);
 SkillAlert.Menu.ParticleEffect = Menu.AddOptionCombo(SkillAlert.Menu.Path, "Custom Effect", SkillAlert.Menu.ParticleEffects ,0);
-SkillAlert.Menu.TrueSight = Menu.AddOptionCombo(SkillAlert.Menu.Path, "True Sight", SkillAlert.Menu.TrueSightTypes ,0);
+SkillAlert.Menu.TrueSight = Menu.AddOptionCombo({"Awareness", "Visible By Enemy"}, "True Sight", SkillAlert.Menu.TrueSightTypes ,0);
 
 SkillAlert.User.Hero = nil;
 SkillAlert.Particles = {};
@@ -134,7 +134,15 @@ function SkillAlert.OnUpdate()
 	if SkillAlert.User.Hero == nil then 
 		return;
 	else
-		if not SkillAlert.isEnabled() then
+		if SkillAlert.isEnabled() then
+			if not NPC.IsHero(SkillAlert.User.Hero) or (SkillAlert.getTruSight() <= 1) then
+				return;
+			end;
+			local mod = NPC.GetModifier(SkillAlert.User.Hero,"modifier_truesight");
+			if mod and Entity.IsAlive(SkillAlert.User.Hero) then
+					SkillAlert.CreateOverheadParticle(SkillAlert.User.Hero ~ mod, SkillAlert.User.Hero, SkillAlert.SkillModifiers[Modifier.GetName(mod)][1]);
+			end;
+		else
 			for i in pairs(SkillAlert.Particles) do
 				if (i ~= nil) then
 					ClearParticle(i);
@@ -142,38 +150,6 @@ function SkillAlert.OnUpdate()
 			end;
 		end;
 	end;
-end;
-
-function SkillAlert.OnParticleCreate( particle )
-	if not SkillAlert.isEnabled() then
-		return;
-	end;
-	--[[
-	Log.Write("particleCr = " .. particle.name);
-	Log.Write("particleCr = " .. tostring(particle.entityForModifiers));
-	if particle.entityForModifiers ~= 0 then
-		SkillAlert.CreateRangeParticle(particle.entityForModifiers, particle.entityForModifiers, "particles/ui_mouseactions/range_display.vpcf")
-		if (SkillAlert.Particles[particle.entityForModifiers] ~= nil) then
-			Particle.SetControlPoint(SkillAlert.Particles[particle.entityForModifiers].ID, 1, Vector(120, 0, 0));
-			Particle.SetControlPoint(SkillAlert.Particles[particle.entityForModifiers].ID, 6, Vector(1, 0, 0));
-		end;
-	end;
-	--]]
-end;
-
-function SkillAlert.OnParticleDestroy( particle )
-	if not SkillAlert.isEnabled() then
-		return;
-	end;
-	--[[
-	Log.Write("particleDe = " .. particle.name);
-	Log.Write("particleDe = " .. tostring(particle.entityForModifiers));
-	if particle.entityForModifiers ~= 0 then
-		if (SkillAlert.Particles[particle.entityForModifiers] ~= nil) then
-			SkillAlert.ClearParticle(particle.entityForModifiers);
-		end;
-	end;
-	--]]
 end;
 
 
@@ -189,7 +165,7 @@ function SkillAlert.OnModifierCreate(ent, mod)
 		--]]
 		if ent and mod and (Modifier.GetName(mod)=="modifier_truesight") then
 			local TrueSightType = SkillAlert.getTruSight();
-			if (TrueSightType <= 1) or ((TrueSightType == 2) and ent~=SkillAlert.User.Hero) or ((TrueSightType == 3) and not Entity.IsSameTeam(ent, SkillAlert.User.Hero)) then
+			if not NPC.IsHero(ent) or ((TrueSightType <= 1) or ((TrueSightType == 2) and (ent~=SkillAlert.User.Hero)) or ((TrueSightType == 3) and not Entity.IsSameTeam(ent, SkillAlert.User.Hero))) then
 				return;
 			end;
 		end;
