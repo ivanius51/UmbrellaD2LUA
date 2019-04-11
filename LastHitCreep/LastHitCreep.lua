@@ -295,13 +295,14 @@ function LastHitCreep.CanCastSpells(caster, enemy)
 
 	if NPC.IsSilenced(caster) then return false end;
 	if NPC.IsStunned(caster) then return false end;
-	if NPC.HasModifier(caster, "modifier_bashed") then return false end;
 	if NPC.HasState(caster, Enum.ModifierState.MODIFIER_STATE_INVULNERABLE) then return false end;
+	if NPC.HasState(caster, Enum.ModifierState.MODIFIER_STATE_HEXED) then return false end;
+
+	if NPC.HasModifier(caster, "modifier_bashed") then return false end;
 	if NPC.HasModifier(caster, "modifier_eul_cyclone") then return false end;
 	if NPC.HasModifier(caster, "modifier_obsidian_destroyer_astral_imprisonment_prison") then return false end;
 	if NPC.HasModifier(caster, "modifier_shadow_demon_disruption") then return false end;
 	if NPC.HasModifier(caster, "modifier_invoker_tornado") then return false end;
-	if NPC.HasState(caster, Enum.ModifierState.MODIFIER_STATE_HEXED) then return false end;
 	if NPC.HasModifier(caster, "modifier_legion_commander_duel") then return false end;
 	if NPC.HasModifier(caster, "modifier_axe_berserkers_call") then return false end;
 	if NPC.HasModifier(caster, "modifier_winter_wyvern_winters_curse") then return false end;
